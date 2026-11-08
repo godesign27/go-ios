@@ -66,7 +66,7 @@ struct DateTimeWidget: View {
                 Text(context.date, format: .dateTime.weekday(.wide))
                     .font(.system(size: 13, weight: .bold, design: theme.fontStyle.design))
                     .textCase(.uppercase)
-                    .opacity(0.75)
+                    .opacity(Theme.secondaryOpacity)
                 Text(context.date, format: .dateTime.day())
                     .font(.system(size: 46, weight: .bold, design: theme.fontStyle.design))
                     .monospacedDigit()
@@ -76,7 +76,7 @@ struct DateTimeWidget: View {
                     .monospacedDigit()
                 Text(context.date, format: .dateTime.month(.wide).year())
                     .font(.system(size: 12, weight: .medium, design: theme.fontStyle.design))
-                    .opacity(0.7)
+                    .opacity(Theme.secondaryOpacity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
@@ -107,7 +107,7 @@ struct WeatherWidget: View {
                         .lineLimit(1)
                     Text("H:\(Int(current.high.rounded()))°  L:\(Int(current.low.rounded()))°")
                         .font(.system(size: 12, weight: .medium, design: theme.fontStyle.design))
-                        .opacity(0.75)
+                        .opacity(Theme.secondaryOpacity)
                 }
             } else {
                 message

@@ -142,7 +142,7 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(context.date, format: .dateTime.weekday(.wide).month(.wide).day())
                             .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
-                            .opacity(0.8)
+                            .opacity(Theme.secondaryOpacity)
                         Text(context.date, format: .dateTime.hour().minute())
                             .font(.system(size: 46, weight: .bold, design: theme.fontStyle.design))
                             .monospacedDigit()
@@ -195,7 +195,7 @@ struct HomeView: View {
                 if theme.userName.isEmpty {
                     Text("Tap to add your name")
                         .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
-                        .opacity(0.7)
+                        .opacity(Theme.secondaryOpacity)
                 }
             }
             .contentShape(Rectangle())
@@ -249,14 +249,14 @@ struct HomeView: View {
                     if let symbol {
                         Image(systemName: symbol)
                             .font(.system(size: 12, weight: .bold))
-                            .opacity(0.75)
+                            .opacity(Theme.secondaryOpacity)
                     }
                     Text(title)
                         .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
                     if let count {
                         Text("\(count)")
                             .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
-                            .opacity(0.6)
+                            .opacity(Theme.secondaryOpacity)
                     }
                     Spacer(minLength: 0)
                 }
@@ -267,7 +267,7 @@ struct HomeView: View {
             if let viewAll, !collapsed {
                 Button("View All", action: viewAll)
                     .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
-                    .opacity(0.85)
+                    .opacity(Theme.secondaryOpacity)
                     .buttonStyle(.plain)
             }
 
@@ -275,7 +275,7 @@ struct HomeView: View {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .bold))
                     .rotationEffect(.degrees(collapsed ? -90 : 0))
-                    .opacity(0.6)
+                    .opacity(Theme.secondaryOpacity)
                     .frame(width: 24, height: 24)
                     .contentShape(Rectangle())
             }
@@ -402,7 +402,7 @@ struct HomeView: View {
                 if apps.isEmpty {
                     Text(kind.emptyText)
                         .font(.footnote)
-                        .foregroundStyle(theme.labelColor.opacity(0.6))
+                        .foregroundStyle(theme.labelColor.opacity(Theme.secondaryOpacity))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     appLayout(apps, rows: rowCount(for: kind.rawValue)) { app in
@@ -448,7 +448,7 @@ struct HomeView: View {
                 if apps.isEmpty && !isEditing {
                     Text("Empty. Drag apps here or tap ••• › Edit Layout.")
                         .font(.footnote)
-                        .foregroundStyle(theme.labelColor.opacity(0.6))
+                        .foregroundStyle(theme.labelColor.opacity(Theme.secondaryOpacity))
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .dropDestination(for: String.self) { items, _ in
                             dropApp(items) { store.move(appID: $0, toGroup: group.id) }
@@ -492,13 +492,13 @@ struct HomeView: View {
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     if let symbol = content.symbol {
-                        Image(systemName: symbol).font(.system(size: 16, weight: .bold)).opacity(0.75)
+                        Image(systemName: symbol).font(.system(size: 16, weight: .bold)).opacity(Theme.secondaryOpacity)
                     }
                     Text(content.title)
                         .font(.system(size: 28, weight: .bold, design: theme.fontStyle.design))
                     Text("\(content.apps.count)")
                         .font(.system(size: 17, weight: .semibold, design: theme.fontStyle.design))
-                        .opacity(0.6)
+                        .opacity(Theme.secondaryOpacity)
                     Spacer()
                     Button("Done", action: closeViewAll)
                         .font(.system(size: 17, weight: .semibold, design: theme.fontStyle.design))
@@ -517,7 +517,7 @@ struct HomeView: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                     if shown.isEmpty {
-                        Text("No apps match “\(viewAllQuery)”").opacity(0.7).padding(.top, 20)
+                        Text("No apps match “\(viewAllQuery)”").opacity(Theme.secondaryOpacity).padding(.top, 20)
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
@@ -608,7 +608,7 @@ struct HomeView: View {
                         .font(.system(size: 12, weight: .medium, design: theme.fontStyle.design))
                 }
             }
-            .foregroundStyle(theme.labelColor.opacity(0.8))
+            .foregroundStyle(theme.labelColor.opacity(Theme.secondaryOpacity))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Add app to group")
@@ -844,7 +844,7 @@ struct SearchOverlay: View {
                 if !store.state.recentSearches.isEmpty {
                     Button("Clear") { store.clearRecentSearches() }
                         .font(.system(size: 14, weight: .medium))
-                        .opacity(0.75)
+                        .opacity(Theme.secondaryOpacity)
                 }
             }
             .padding(.bottom, 4)
@@ -852,7 +852,7 @@ struct SearchOverlay: View {
             if store.state.recentSearches.isEmpty {
                 Text("Your searches will show up here.")
                     .font(.footnote)
-                    .opacity(0.6)
+                    .opacity(Theme.secondaryOpacity)
             } else {
                 // Oldest at the top, newest at the bottom next to the search bar.
                 ForEach(store.state.recentSearches.reversed(), id: \.self) { recent in
@@ -861,7 +861,7 @@ struct SearchOverlay: View {
                             query = recent
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: "clock.arrow.circlepath").opacity(0.6)
+                                Image(systemName: "clock.arrow.circlepath").opacity(Theme.secondaryOpacity)
                                 Text(recent)
                                 Spacer()
                             }
@@ -871,7 +871,7 @@ struct SearchOverlay: View {
                         Button {
                             store.removeRecentSearch(recent)
                         } label: {
-                            Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).opacity(0.5)
+                            Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).opacity(Theme.secondaryOpacity)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Remove \(recent) from recent searches")
@@ -915,7 +915,7 @@ struct SearchOverlay: View {
         .buttonStyle(.plain)
         if matches.isEmpty {
             Text("No apps match “\(query)”")
-                .opacity(0.7)
+                .opacity(Theme.secondaryOpacity)
                 .frame(maxWidth: .infinity)
         } else {
             LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
@@ -926,7 +926,7 @@ struct SearchOverlay: View {
             }
             Text("Press Go to open \(matches[0].name)")
                 .font(.footnote)
-                .opacity(0.6)
+                .opacity(Theme.secondaryOpacity)
                 .frame(maxWidth: .infinity)
         }
     }
@@ -948,7 +948,8 @@ struct WallpaperView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            if let image = wallpaperImage {
+            let image = wallpaperImage
+            if let image {
                 Color.clear
                     .overlay {
                         Image(uiImage: image)
@@ -956,8 +957,10 @@ struct WallpaperView: View {
                             .scaledToFill()
                     }
                     .clipped()
-                Color.black.opacity(theme.wallpaperDim)
             }
+            // Your dimming, or more if white text would otherwise fall below WCAG AA contrast.
+            Color.black.opacity(max(theme.wallpaperDim * (image == nil ? 0 : 1),
+                                    ContrastGuard.requiredDim(theme: theme, image: image, imageKey: wallpaperKey)))
         }
         .ignoresSafeArea()
     }
@@ -967,6 +970,12 @@ struct WallpaperView: View {
         if let name = theme.wallpaperFilename, let image = store.image(named: name) { return image }
         if let name = theme.bundledWallpaper { return UIImage(named: name) }
         return nil
+    }
+
+    /// Cache key for the contrast measurement of the current image.
+    private var wallpaperKey: String? {
+        if let name = theme.wallpaperFilename, store.image(named: name) != nil { return "photo:" + name }
+        return theme.bundledWallpaper.map { "bundled:" + $0 }
     }
 }
 

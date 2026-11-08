@@ -96,22 +96,15 @@ struct AppIconView: View {
 
     private var nameInside: Bool { showLabel && theme.showLabels && theme.labelsInside }
 
-    /// Glass style draws every icon as a white symbol on frosted glass, so the official
-    /// App Store artwork steps aside for the app's symbol. Your own photos stay.
-    private var shownGlyph: IconGlyph {
-        if theme.usesGlassIcons, app.usesOfficialIcon, let fallback = app.fallbackGlyph { return fallback }
-        return app.glyph
-    }
-
     private var isPictureIcon: Bool {
-        if case .image = shownGlyph { return true }
+        if case .image = app.glyph { return true }
         return false
     }
 
     var body: some View {
         VStack(spacing: 6) {
             IconTile(
-                glyph: shownGlyph,
+                glyph: app.glyph,
                 backgroundHex: theme.uniformIconColors ? theme.uniformIconHex : app.colorHex,
                 secondaryHex: theme.uniformIconColors ? nil : app.secondaryColorHex,
                 glyphHex: theme.uniformIconColors ? theme.uniformGlyphHex : app.glyphColorHex,

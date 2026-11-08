@@ -94,8 +94,8 @@ struct Theme: Codable, Hashable {
     var fontStyle: FontStyle = .rounded
     /// When on, every icon uses the same colors below (great for minimal/aesthetic looks).
     /// A see-through color (#RRGGBBAA) makes frosted glass tiles.
-    var uniformIconColors = true
-    var uniformIconHex = "#FFFFFF2E"
+    var uniformIconColors = false
+    var uniformIconHex = "#FFFFFF33"
     var uniformGlyphHex = "#FFFFFF"
 
     // Widgets (two side by side above everything else)
@@ -115,6 +115,10 @@ struct Theme: Codable, Hashable {
     var userName = ""
 
     var labelColor: Color { Color(hex: labelColorHex) }
+
+    /// Secondary text and small controls (counts, dates, hints, chevrons): 85% of the label
+    /// color, the top of the 75-85% range, so it keeps WCAG AA contrast (4.5:1) on cards.
+    static let secondaryOpacity = 0.85
 
     /// Uniform icons in a see-through color render as frosted glass tiles.
     var usesGlassIcons: Bool {
@@ -167,11 +171,11 @@ struct Theme: Codable, Hashable {
     }
 
     var isClassic: Bool {
-        hasCardLayout && cardMaterial == .tone && !usesGlassIcons
+        hasCardLayout && cardMaterial == .tone
     }
 
     var isGlass: Bool {
-        hasCardLayout && cardMaterial == .frosted && usesGlassIcons
+        hasCardLayout && cardMaterial == .frosted
     }
 
     /// Edge-to-edge square tiles: no gaps, square corners, each icon fills its cell, names inside.
@@ -192,20 +196,17 @@ struct Theme: Codable, Hashable {
         showGroupCards = true
     }
 
-    /// The standard iOS-like look: colored icons on tinted cards.
+    /// The standard iOS-like look: icons on cards tinted with the background's hue.
     mutating func applyClassic() {
         applyCardLayout()
         cardMaterial = .tone
-        uniformIconColors = false
     }
 
-    /// Frosted cards and glass icon tiles with white glyphs, over the wallpaper.
+    /// Frosted glass cards over the wallpaper. Icons keep their own logos and colors.
     mutating func applyGlass() {
         applyCardLayout()
         cardMaterial = .frosted
-        uniformIconColors = true
-        uniformIconHex = "#FFFFFF2E"
-        uniformGlyphHex = "#FFFFFF"
+        uniformIconColors = false
     }
 }
 
@@ -235,10 +236,10 @@ struct ThemePreset: Identifiable {
 
     static let all: [ThemePreset] = [
         wallpaper("Twilight", top: "#0B1652", bottom: "#3A2D9C", dim: 0),
-        wallpaper("Dusk", top: "#8E7FE0", bottom: "#3F63D6", dim: 0.12),
-        wallpaper("Haze", top: "#9AA6EE", bottom: "#4C6BC4", dim: 0.25),
-        wallpaper("Daybreak", top: "#D6BFE6", bottom: "#5B78D8", dim: 0.28),
-        wallpaper("Blush", top: "#E3A9C0", bottom: "#A27DBF", dim: 0.3),
+        wallpaper("Dusk", top: "#8E7FE0", bottom: "#3F63D6", dim: 0),
+        wallpaper("Haze", top: "#9AA6EE", bottom: "#4C6BC4", dim: 0),
+        wallpaper("Daybreak", top: "#D6BFE6", bottom: "#5B78D8", dim: 0),
+        wallpaper("Blush", top: "#E3A9C0", bottom: "#A27DBF", dim: 0),
         ThemePreset(name: "Midnight") { t in
             t.bundledWallpaper = nil
             t.backgroundTopHex = "#312E81"; t.backgroundBottomHex = "#0F172A"

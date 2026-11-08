@@ -65,7 +65,7 @@ struct ThemeView: View {
         } header: {
             Text("Style")
         } footer: {
-            Text("Classic: colored icons on tinted cards. Glass: frosted cards and see-through icons that let the wallpaper show. Tiles: no spacing, square edges, and every app fills its whole cell for a bigger tap area. Names sit inside the tiles. You can still fine-tune each setting below.")
+            Text("Classic: cards tinted with the background color. Glass: frosted cards that let the wallpaper show through. Tiles: no spacing, square edges, and every app fills its whole cell for a bigger tap area. Names sit inside the tiles. You can still fine-tune each setting below.")
         }
     }
 
@@ -78,16 +78,22 @@ struct ThemeView: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(18), spacing: tiles ? 0 : 6), count: 3), spacing: tiles ? 0 : 6) {
                     ForEach(0..<6, id: \.self) { i in
                         RoundedRectangle(cornerRadius: tiles ? 0 : 5, style: .continuous)
-                            .fill(glass ? Color.white.opacity(0.35) : Color(hex: ["#F472B6", "#818CF8", "#34D399", "#FBBF24", "#38BDF8", "#F97316"][i]))
-                            .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(.white.opacity(glass ? 0.6 : 0), lineWidth: 1))
+                            .fill(Color(hex: ["#F472B6", "#818CF8", "#34D399", "#FBBF24", "#38BDF8", "#F97316"][i]))
                             .frame(width: 18, height: 18)
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: 56)
                 .background {
                     if glass {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(LinearGradient(colors: [Color(hex: "#3A2D9C"), Color(hex: "#C08AD8")], startPoint: .top, endPoint: .bottom))
+                        // A frosted panel over the wallpaper, like the Glass cards.
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(LinearGradient(colors: [Color(hex: "#3A2D9C"), Color(hex: "#C08AD8")], startPoint: .top, endPoint: .bottom))
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.white.opacity(0.18))
+                                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(.white.opacity(0.45), lineWidth: 1))
+                                .padding(4)
+                        }
                     }
                 }
                 Text(name).font(.subheadline.weight(.semibold))

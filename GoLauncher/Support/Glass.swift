@@ -154,15 +154,15 @@ enum GlassTokens {
     /// White fill over the blur.
     static let cardFill = 0.12
     static let iconFill = 0.18
-    static let buttonFill = 0.20
-    static let buttonPressedFill = 0.30
+    static let buttonFill = 0.12
+    static let buttonPressedFill = 0.20
     /// Hairline rim.
     static let cardBorder = 0.35
     static let iconBorder = 0.30
     /// Highlight along the top edge, fading out by the middle.
     static let topHighlight = 0.25
     /// How much of the light frost shows (1 = full system ultra-thin material).
-    static let frost = 0.4
+    static let frost = 0.2
     static let shadow = Color(red: 20 / 255, green: 20 / 255, blue: 60 / 255).opacity(0.08)
 }
 
@@ -196,6 +196,10 @@ struct AtmosphericGlass<S: InsettableShape>: ViewModifier {
                 ZStack {
                     if reduceTransparency {
                         shape.fill(tone)
+                    } else if isButton {
+                        // Buttons sit on a card that's already frosted; a second frost would
+                        // lighten the pill past WCAG contrast for its white label.
+                        EmptyView()
                     } else {
                         // Light frost regardless of dark/light mode, so the wallpaper stays bright.
                         shape.fill(.ultraThinMaterial)
@@ -219,6 +223,11 @@ struct AtmosphericGlass<S: InsettableShape>: ViewModifier {
                 }
                 .allowsHitTesting(false)
             }
+    }
+
+    private var isButton: Bool {
+        if case .button = style { return true }
+        return false
     }
 
     private var isCard: Bool {
