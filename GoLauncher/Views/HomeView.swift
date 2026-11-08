@@ -502,47 +502,25 @@ struct SearchOverlay: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("Search apps", text: $query)
-                        .focused($focused)
-                        .submitLabel(.go)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .onSubmit(launchTopResult)
-                    if !query.isEmpty {
-                        Button { query = "" } label: {
-                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                        }
-                        .accessibilityLabel("Clear search")
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                if query.trimmingCharacters(in: .whitespaces).isEmpty {
+                    suggestions
+                    recentSearches
+                } else {
+                    results
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 11)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-                Button("Cancel", action: onClose)
-                    .foregroundStyle(theme.labelColor)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    if query.trimmingCharacters(in: .whitespaces).isEmpty {
-                        recentSearches
-                        suggestions
-                    } else {
-                        results
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
-            }
-            .scrollDismissesKeyboard(.interactively)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+        }
+        // Content hugs the bottom, next to the search bar and your thumb.
+        .defaultScrollAnchor(.bottom)
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            searchBar
         }
         .font(.system(.body, design: theme.fontStyle.design))
         .foregroundStyle(theme.labelColor)
@@ -555,6 +533,37 @@ struct SearchOverlay: View {
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { focused = true }
         }
+    }
+
+    /// Sits at the bottom of the screen (just above the keyboard) to keep it within thumb reach.
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                TextField("Search apps", text: $query)
+                    .focused($focused)
+                    .submitLabel(.go)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .onSubmit(launchTopResult)
+                if !query.isEmpty {
+                    Button { query = "" } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    }
+                    .accessibilityLabel("Clear search")
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 11)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            Button("Cancel", action: onClose)
+                .foregroundStyle(theme.labelColor)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(.ultraThinMaterial)
     }
 
     @ViewBuilder
@@ -576,7 +585,8 @@ struct SearchOverlay: View {
                     .font(.footnote)
                     .opacity(0.6)
             } else {
-                ForEach(store.state.recentSearches, id: \.self) { recent in
+                // Oldest at the top, newest at the bottom next to the search bar.
+                ForEach(store.state.recentSearches.reversed(), id: \.self) { recent in
                     HStack(spacing: 12) {
                         Button {
                             query = recent
@@ -623,11 +633,20 @@ struct SearchOverlay: View {
     @ViewBuilder
     private var results: some View {
         let matches = store.search(query)
+        Button {
+            onWebSearch(query)
+        } label: {
+            Label("Search the web for “\(query)”", systemImage: "safari")
+                .font(.system(.subheadline, design: theme.fontStyle.design).weight(.medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
         if matches.isEmpty {
             Text("No apps match “\(query)”")
                 .opacity(0.7)
                 .frame(maxWidth: .infinity)
-                .padding(.top, 8)
         } else {
             LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
                 ForEach(matches) { app in
@@ -640,16 +659,6 @@ struct SearchOverlay: View {
                 .opacity(0.6)
                 .frame(maxWidth: .infinity)
         }
-        Button {
-            onWebSearch(query)
-        } label: {
-            Label("Search the web for “\(query)”", systemImage: "safari")
-                .font(.system(.subheadline, design: theme.fontStyle.design).weight(.medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
-        .buttonStyle(.plain)
     }
 
     private func launchTopResult() {

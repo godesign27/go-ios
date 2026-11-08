@@ -80,7 +80,7 @@ body {
 .round-btn svg { width: 20px; height: 20px; }
 .done-btn { border: 0; cursor: pointer; font: 700 16px var(--app-font); color: var(--label); background: var(--material); backdrop-filter: blur(20px); padding: 9px 16px; border-radius: 999px; }
 
-.searchrow { display: flex; gap: 10px; align-items: center; padding: 0 16px 14px; }
+.searchrow { display: flex; gap: 10px; align-items: center; padding: 10px 16px 30px; background: var(--material); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 .bottom-bar { position: absolute; left: 12px; right: 12px; bottom: 18px; z-index: 5; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; pointer-events: none; }
 .bottom-bar > * { pointer-events: auto; }
 .bottom-bar #dock { align-self: stretch; }
@@ -93,7 +93,8 @@ body {
 .search-view { position: absolute; inset: 0; z-index: 20; padding-top: 58px; display: flex; flex-direction: column; background: linear-gradient(var(--bg-top), var(--bg-bottom)); animation: rise .25s cubic-bezier(.2, .9, .3, 1); }
 .search-view::before { content: ""; position: absolute; inset: 0; background: var(--search-tint); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); z-index: -1; }
 @keyframes rise { from { opacity: 0; transform: translateY(40px); } }
-.sv-body { flex: 1; overflow-y: auto; padding: 4px 16px 30px; scrollbar-width: none; }
+.sv-body { flex: 1; overflow-y: auto; padding: 4px 16px 12px; scrollbar-width: none; display: flex; flex-direction: column; }
+.sv-body > .sv-inner { margin-top: auto; }
 .sv-title { display: flex; justify-content: space-between; align-items: baseline; font: 700 15px var(--app-font); margin: 6px 0 6px; text-shadow: var(--label-shadow); }
 .sv-title button { border: 0; background: none; color: var(--label); opacity: .75; font: 600 14px var(--app-font); cursor: pointer; padding: 0; }
 .recent { display: flex; align-items: center; gap: 12px; border-bottom: .5px solid color-mix(in srgb, var(--label) 25%, transparent); }
@@ -315,6 +316,7 @@ body {
         <div id="dock"></div>
       </div>
       <div class="search-view" id="searchView" hidden>
+        <div class="sv-body" id="svBody"></div>
         <div class="searchrow">
           <label class="searchbar"><i data-lucide="search"></i>
             <input id="q" type="text" placeholder="Search apps" autocomplete="off" enterkeyhint="go" aria-label="Search apps">
@@ -322,7 +324,6 @@ body {
           </label>
           <button class="cancel-q" id="cancelQ" type="button">Cancel</button>
         </div>
-        <div class="sv-body" id="svBody"></div>
       </div>
       <div class="homebar"></div>
       <div id="overlay"></div>
@@ -547,16 +548,17 @@ body {
     const grid = apps => `<div class="grid" style="margin-top:8px">${apps.map(a => `<button class="cell still" type="button" data-act="search-launch" data-id="${a.id}" aria-label="${esc(a.name)}">${appTile(a, true)}${underLabel(a)}</button>`).join("")}</div>`;
     if (!q) {
       const rs = state.recentSearches || [], sugg = recentApps(t.columns);
-      body.innerHTML = `<div class="sv-title">Recent Searches${rs.length ? `<button type="button" data-act="recent-clear">Clear</button>` : ""}</div>`
-        + (rs.length ? rs.map(r => `<div class="recent"><button class="use" type="button" data-act="recent-use" data-q="${esc(r)}"><i data-lucide="history"></i>${esc(r)}</button><button class="del" type="button" data-act="recent-del" data-q="${esc(r)}" aria-label="Remove ${esc(r)}"><i data-lucide="x"></i></button></div>`).join("")
-          : `<div class="sv-empty">Your searches will show up here.</div>`)
-        + (sugg.length ? `<div class="sv-gap"></div><div class="sv-title">Suggestions</div>${grid(sugg)}` : "");
+      body.innerHTML = `<div class="sv-inner">` + (sugg.length ? `<div class="sv-title">Suggestions</div>${grid(sugg)}<div class="sv-gap"></div>` : "")
+        + `<div class="sv-title">Recent Searches${rs.length ? `<button type="button" data-act="recent-clear">Clear</button>` : ""}</div>`
+        + (rs.length ? [...rs].reverse().map(r => `<div class="recent"><button class="use" type="button" data-act="recent-use" data-q="${esc(r)}"><i data-lucide="history"></i>${esc(r)}</button><button class="del" type="button" data-act="recent-del" data-q="${esc(r)}" aria-label="Remove ${esc(r)}"><i data-lucide="x"></i></button></div>`).join("")
+          : `<div class="sv-empty">Your searches will show up here.</div>`) + `</div>`;
     } else {
       const r = search(q);
-      body.innerHTML = (r.length ? grid(r) + `<div class="hint">Press Enter to open ${esc(r[0].name)}</div>` : `<div class="hint" style="font-size:14px">No apps match “${esc(q)}”</div>`)
-        + `<button class="web-btn" data-act="web" type="button"><i data-lucide="compass"></i>Search the web for “${esc(q)}”</button>`;
+      body.innerHTML = `<div class="sv-inner"><button class="web-btn" data-act="web" type="button" style="margin:0 0 14px"><i data-lucide="compass"></i>Search the web for “${esc(q)}”</button>`
+        + (r.length ? grid(r) + `<div class="hint">Press Enter to open ${esc(r[0].name)}</div>` : `<div class="hint" style="font-size:14px">No apps match “${esc(q)}”</div>`) + `</div>`;
     }
     icons();
+    body.scrollTop = body.scrollHeight; // keep the bottom (nearest the search bar) in view
   }
   // ---------- Widgets ----------
   const WIDGETS = { dateTime: "Date & Time", weather: "Weather", favorites: "Favorite Apps" };
