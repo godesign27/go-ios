@@ -21,6 +21,9 @@ targets:
       path: GoLauncher/Info.plist
       properties:
         CFBundleDisplayName: Go
+        # Read from build settings, so testflight.sh's timestamp build number reaches the upload.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         # Only standard HTTPS is used, so uploads skip the export-compliance question.
         ITSAppUsesNonExemptEncryption: false
