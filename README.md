@@ -54,6 +54,7 @@ It pulls the latest code, archives with a fresh build number, and uploads. The b
 | --- | --- |
 | Open an app | Tap its icon, or tap the search button (bottom right), type, and press **Go** |
 | Add an app | **•••** › **Add App**: pick from the list, or choose **Custom** |
+| Get the apps already on your iPhone | Automatic: each time Go opens, it checks for the ~50 popular apps it knows and adds the ones you have to **Your Apps**. iOS doesn't let any app see everything installed, so add others with **Add App › Custom**. Delete one and it stays deleted. |
 | Edit an icon (name, symbol, emoji, photo, colors) | Long-press › **Edit Icon** |
 | Rearrange | Long-press an icon and drag it onto another icon or onto a group title |
 | Move to another group | Long-press › **Move to Group** |

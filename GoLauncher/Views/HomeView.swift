@@ -120,6 +120,7 @@ struct HomeView: View {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
+                store.syncInstalledApps()
                 if theme.searchOnOpen { openSearch() }
                 if theme.showWidgets, theme.leftWidget == .weather || theme.rightWidget == .weather {
                     weather.refreshIfNeeded()
@@ -712,14 +713,18 @@ struct HomeView: View {
             launchError = "\(app.name) doesn't have a link set yet. Long-press it and choose Edit Icon."
             return
         }
+        // Record before opening: once the other app opens, Go may be closed before this
+        // completion runs. Undone below if iOS couldn't open the app.
+        let before = store.state.apps.first { $0.id == app.id }
+        store.recordLaunch(app.id)
         openURL(url) { accepted in
             if accepted {
-                store.recordLaunch(app.id)
                 withAnimation(.snappy) {
                     isSearching = false
                     viewAllKey = nil
                 }
             } else {
+                if let before { store.upsert(before) }
                 launchError = "iOS couldn't open \(app.name). The app may not be installed, or its link changed. Edit the icon and try the Shortcut option instead."
             }
         }

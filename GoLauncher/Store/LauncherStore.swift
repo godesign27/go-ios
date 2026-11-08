@@ -17,7 +17,47 @@ final class LauncherStore: ObservableObject {
             .sink { [weak self] _ in self?.saveNow() }
             .store(in: &cancellables)
         cleanupUnusedImages()
+        syncInstalledApps()
         fetchOfficialIcons()
+    }
+
+    // MARK: - Apps on this iPhone
+
+    static let installedGroupName = "Your Apps"
+
+    /// iOS doesn't let apps list what's installed, so Go asks about each catalog app by its URL scheme
+    /// and adds the ones it finds to "Your Apps". Each app is added once: delete it and it stays gone.
+    /// Apps that aren't installed are checked again next time, so newly installed ones show up.
+    func syncInstalledApps() {
+        var known = Set(state.knownCatalogApps)
+        let present = Set(state.apps.map(\.name))
+        var found: [CatalogEntry] = []
+        for entry in AppCatalog.entries where !known.contains(entry.name) {
+            if present.contains(entry.name) {
+                known.insert(entry.name)
+            } else if Self.isInstalled(entry) {
+                known.insert(entry.name)
+                found.append(entry)
+            }
+        }
+        guard known.count != state.knownCatalogApps.count else { return }
+
+        if !found.isEmpty {
+            let groupID = state.groups.first { $0.name == Self.installedGroupName }?.id
+                ?? addGroup(named: Self.installedGroupName)
+            state.apps += found
+                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                .map { $0.makeApp(groupID: groupID) }
+        }
+        state.knownCatalogApps = AppCatalog.entries.map(\.name).filter(known.contains)
+        if !found.isEmpty { fetchOfficialIcons() }
+    }
+
+    /// Apple's built-in apps are assumed present; others are checked with canOpenURL.
+    private static func isInstalled(_ entry: CatalogEntry) -> Bool {
+        if entry.category == .apple { return true }
+        guard let scheme = AppCatalog.scheme(of: entry), let url = URL(string: "\(scheme)://") else { return false }
+        return UIApplication.shared.canOpenURL(url)
     }
 
     // MARK: - Queries
@@ -252,6 +292,9 @@ final class LauncherStore: ObservableObject {
         app.lastLaunched = Date()
         app.needsAttention = false
         state.apps[index] = app
+        // Save now: Go goes to the background as the other app opens and may be closed by iOS
+        // before the usual delayed save runs, which lost launches from Recently Used.
+        saveNow()
     }
 
     /// Drag-and-drop: the dragged app takes the target's spot (and joins its group).

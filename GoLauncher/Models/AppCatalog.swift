@@ -78,6 +78,11 @@ enum AppCatalog {
         CatalogEntry(name: "Spotify", url: "spotify://", symbol: "music.note.list", colorHex: "#22C55E", category: .media, keywords: "music"),
         CatalogEntry(name: "YouTube", url: "youtube://", symbol: "play.rectangle.fill", colorHex: "#EF4444", category: .media, keywords: "video"),
         CatalogEntry(name: "Netflix", url: "nflx://", symbol: "tv.fill", colorHex: "#B91C1C", category: .media, keywords: "movies shows"),
+        CatalogEntry(name: "Prime Video", url: "aiv://", symbol: "play.rectangle.on.rectangle.fill", colorHex: "#0EA5E9", category: .media, keywords: "amazon movies shows"),
+        CatalogEntry(name: "Disney+", url: "disneyplus://", symbol: "sparkles.tv.fill", colorHex: "#1E3A8A", category: .media, keywords: "disney movies shows"),
+        CatalogEntry(name: "Hulu", url: "hulu://", symbol: "tv", colorHex: "#16A34A", category: .media, keywords: "movies shows"),
+        CatalogEntry(name: "Twitch", url: "twitch://", symbol: "play.tv.fill", colorHex: "#9146FF", category: .media, keywords: "stream live"),
+        CatalogEntry(name: "Shazam", url: "shazam://", symbol: "waveform", colorHex: "#0EA5E9", category: .media, keywords: "song identify music"),
 
         // Productivity
         CatalogEntry(name: "Gmail", url: "googlegmail://", symbol: "envelope.open.fill", colorHex: "#EF4444", category: .productivity, keywords: "email google"),
@@ -87,11 +92,23 @@ enum AppCatalog {
         CatalogEntry(name: "Teams", url: "msteams://", symbol: "person.3.fill", colorHex: "#6366F1", category: .productivity, keywords: "microsoft work"),
         CatalogEntry(name: "Zoom", url: "zoomus://", symbol: "video.fill", colorHex: "#3B82F6", category: .productivity, keywords: "meeting call"),
         CatalogEntry(name: "Notion", url: "notion://", symbol: "doc.text.fill", colorHex: "#111827", category: .productivity, keywords: "notes docs"),
+        CatalogEntry(name: "Google Drive", url: "googledrive://", symbol: "externaldrive.fill", colorHex: "#F59E0B", category: .productivity, keywords: "files docs google"),
+        CatalogEntry(name: "Google Photos", url: "googlephotos://", symbol: "photo.stack.fill", colorHex: "#3B82F6", category: .productivity, keywords: "pictures google"),
+        CatalogEntry(name: "Duolingo", url: "duolingo://", symbol: "graduationcap.fill", colorHex: "#58CC02", category: .productivity, keywords: "language learn"),
+        CatalogEntry(name: "Strava", url: "strava://", symbol: "figure.run", colorHex: "#FC4C02", category: .productivity, keywords: "run bike fitness"),
 
         // Shopping & travel
         CatalogEntry(name: "Google Maps", url: "comgooglemaps://", symbol: "mappin.and.ellipse", colorHex: "#10B981", category: .everyday, keywords: "directions"),
         CatalogEntry(name: "Uber", url: "uber://", symbol: "car.fill", colorHex: "#111827", category: .everyday, keywords: "ride taxi"),
         CatalogEntry(name: "Venmo", url: "venmo://", symbol: "dollarsign.circle.fill", colorHex: "#0EA5E9", category: .everyday, keywords: "pay money"),
+        CatalogEntry(name: "Lyft", url: "lyft://", symbol: "car.side.fill", colorHex: "#FF00BF", category: .everyday, keywords: "ride taxi"),
+        CatalogEntry(name: "Waze", url: "waze://", symbol: "location.fill", colorHex: "#33CCFF", category: .everyday, keywords: "directions traffic"),
+        CatalogEntry(name: "Amazon", url: "com.amazon.mobile.shopping://", symbol: "cart.fill", colorHex: "#F59E0B", category: .everyday, keywords: "shop shopping"),
+        CatalogEntry(name: "Airbnb", url: "airbnb://", symbol: "house.fill", colorHex: "#FF5A5F", category: .everyday, keywords: "travel stay"),
+        CatalogEntry(name: "DoorDash", url: "doordash://", symbol: "takeoutbag.and.cup.and.straw.fill", colorHex: "#EF4444", category: .everyday, keywords: "food delivery"),
+        CatalogEntry(name: "PayPal", url: "paypal://", symbol: "p.circle.fill", colorHex: "#1E40AF", category: .everyday, keywords: "pay money"),
+        CatalogEntry(name: "Cash App", url: "squarecash://", symbol: "dollarsign.square.fill", colorHex: "#00D632", category: .everyday, keywords: "pay money"),
+        CatalogEntry(name: "Signal", url: "sgnl://", symbol: "lock.circle.fill", colorHex: "#3A76F0", category: .social, keywords: "chat private"),
 
         // AI — these links are less established; if one doesn't open, switch the icon to a Shortcut.
         CatalogEntry(name: "ChatGPT", url: "chatgpt://", symbol: "sparkles", colorHex: "#10A37F", category: .ai, keywords: "ai openai chat gpt"),
@@ -121,7 +138,21 @@ enum AppCatalog {
         "Notion": "notion.id", "Google Maps": "com.google.Maps", "Uber": "com.ubercab.UberClient",
         "Venmo": "net.kortina.labs.Venmo", "ChatGPT": "com.openai.chat", "Claude": "com.anthropic.claude",
         "Gemini": "com.google.gemini",
+        "Prime Video": "com.amazon.aiv.AIVApp", "Disney+": "com.disney.disneyplus", "Hulu": "com.hulu.plus",
+        "Twitch": "tv.twitch", "Shazam": "com.shazam.Shazam", "Google Drive": "com.google.Drive",
+        "Google Photos": "com.google.photos", "Duolingo": "com.duolingo.DuolingoMobile", "Strava": "com.strava.stravaride",
+        "Lyft": "com.zimride.instant", "Waze": "com.waze.iphone", "Amazon": "com.amazon.Amazon",
+        "Airbnb": "com.airbnb.app", "DoorDash": "doordash.DoorDashConsumer", "PayPal": "com.yourcompany.PPClient",
+        "Cash App": "com.squareup.cash", "Signal": "org.whispersystems.signal",
     ]
+
+    /// The URL scheme Go asks iOS about to tell whether an app is installed ("spotify" for "spotify://").
+    /// Every non-Apple scheme must also be listed under LSApplicationQueriesSchemes in project.yml
+    /// (iOS allows at most 50), or iOS always answers "not installed".
+    static func scheme(of entry: CatalogEntry) -> String? {
+        guard entry.category != .apple, let colon = entry.url.firstIndex(of: ":") else { return nil }
+        return String(entry.url[..<colon])
+    }
 
     /// Built-in Apple apps that aren't on the App Store, so they have no icon to fetch.
     static let noStoreIcon: Set<String> = [

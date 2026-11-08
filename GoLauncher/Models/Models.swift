@@ -97,6 +97,8 @@ struct LauncherState: Codable {
     var recentSearches: [String] = []
     /// Your favorites, in order. The Favorites section shows them all; the widget shows the first four.
     var favoriteAppIDs: [UUID] = []
+    /// Catalog apps Go has already put in your layout (or found there), so one you delete isn't added back.
+    var knownCatalogApps: [String] = []
 }
 
 /// Sections Go fills in by itself.
@@ -184,5 +186,6 @@ extension LauncherState {
         showDock = try c.decodeIfPresent(Bool.self, forKey: .showDock) ?? false
         recentSearches = try c.decodeIfPresent([String].self, forKey: .recentSearches) ?? []
         favoriteAppIDs = try c.decodeIfPresent([UUID].self, forKey: .favoriteAppIDs) ?? []
+        knownCatalogApps = try c.decodeIfPresent([String].self, forKey: .knownCatalogApps) ?? []
     }
 }
