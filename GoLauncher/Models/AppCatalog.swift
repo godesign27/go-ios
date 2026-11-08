@@ -30,7 +30,8 @@ struct CatalogEntry: Identifiable, Hashable {
             glyph: .symbol(symbol),
             colorHex: colorHex,
             groupID: groupID,
-            keywords: keywords
+            keywords: keywords,
+            bundleID: AppCatalog.bundleIDs[name]
         )
     }
 }
@@ -103,4 +104,27 @@ enum AppCatalog {
     static func entry(named name: String) -> CatalogEntry? {
         entries.first { $0.name == name }
     }
+
+    /// App Store bundle IDs, used to fetch each app's official icon.
+    static let bundleIDs: [String: String] = [
+        "Mail": "com.apple.mobilemail", "Music": "com.apple.Music", "Maps": "com.apple.Maps",
+        "Calendar": "com.apple.mobilecal", "Notes": "com.apple.mobilenotes", "Reminders": "com.apple.reminders",
+        "Weather": "com.apple.weather", "Podcasts": "com.apple.podcasts", "Books": "com.apple.iBooks",
+        "Files": "com.apple.DocumentsApp", "Shortcuts": "com.apple.shortcuts",
+        "Instagram": "com.burbn.instagram", "WhatsApp": "net.whatsapp.WhatsApp", "Messenger": "com.facebook.Messenger",
+        "Facebook": "com.facebook.Facebook", "X": "com.atebits.Tweetie2", "Threads": "com.burbn.barcelona",
+        "TikTok": "com.zhiliaoapp.musically", "Snapchat": "com.toyopagroup.picaboo", "Telegram": "ph.telegra.Telegraph",
+        "Discord": "com.hammerandchisel.discord", "Reddit": "com.reddit.Reddit", "LinkedIn": "com.linkedin.LinkedIn",
+        "Spotify": "com.spotify.client", "YouTube": "com.google.ios.youtube", "Netflix": "com.netflix.Netflix",
+        "Gmail": "com.google.Gmail", "Outlook": "com.microsoft.Office.Outlook", "Chrome": "com.google.chrome.ios",
+        "Slack": "com.tinyspeck.chatlyio", "Teams": "com.microsoft.skype.teams", "Zoom": "us.zoom.videomeetings",
+        "Notion": "notion.id", "Google Maps": "com.google.Maps", "Uber": "com.ubercab.UberClient",
+        "Venmo": "net.kortina.labs.Venmo", "ChatGPT": "com.openai.chat", "Claude": "com.anthropic.claude",
+        "Gemini": "com.google.gemini",
+    ]
+
+    /// Built-in Apple apps that aren't on the App Store, so they have no icon to fetch.
+    static let noStoreIcon: Set<String> = [
+        "Phone", "Messages", "Safari", "Photos", "Wallet", "Health", "App Store", "Settings",
+    ]
 }

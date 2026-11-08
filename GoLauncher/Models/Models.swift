@@ -54,6 +54,14 @@ struct LauncherApp: Identifiable, Codable, Hashable {
     var keywords: String = ""
     var launchCount = 0
     var lastLaunched: Date?
+    /// The app's App Store bundle ID, used to find its official icon.
+    var bundleID: String?
+    /// Go already tried to fetch this app's official icon (found or not).
+    var iconLookupDone = false
+    /// The icon is the official App Store icon (downloaded into Go).
+    var usesOfficialIcon = false
+    /// The symbol/emoji icon to restore if official icons are turned off.
+    var fallbackGlyph: IconGlyph?
 
     static func blank(groupID: UUID) -> LauncherApp {
         LauncherApp(
@@ -135,4 +143,46 @@ enum HomeSection: Identifiable {
     }
 
     var id: String { key }
+}
+
+// MARK: - Tolerant loading
+// Saved layouts from older versions of Go are missing newer fields. These decoders fill in
+// defaults instead of failing, so an update never resets someone's home screen.
+
+extension LauncherApp {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try c.decode(String.self, forKey: .name)
+        launch = try c.decode(LaunchTarget.self, forKey: .launch)
+        glyph = try c.decode(IconGlyph.self, forKey: .glyph)
+        colorHex = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? "#7C6AF4"
+        secondaryColorHex = try c.decodeIfPresent(String.self, forKey: .secondaryColorHex)
+        glyphColorHex = try c.decodeIfPresent(String.self, forKey: .glyphColorHex) ?? "#FFFFFF"
+        groupID = try c.decode(UUID.self, forKey: .groupID)
+        needsAttention = try c.decodeIfPresent(Bool.self, forKey: .needsAttention) ?? false
+        isDocked = try c.decodeIfPresent(Bool.self, forKey: .isDocked) ?? false
+        keywords = try c.decodeIfPresent(String.self, forKey: .keywords) ?? ""
+        launchCount = try c.decodeIfPresent(Int.self, forKey: .launchCount) ?? 0
+        lastLaunched = try c.decodeIfPresent(Date.self, forKey: .lastLaunched)
+        bundleID = try c.decodeIfPresent(String.self, forKey: .bundleID)
+        iconLookupDone = try c.decodeIfPresent(Bool.self, forKey: .iconLookupDone) ?? false
+        usesOfficialIcon = try c.decodeIfPresent(Bool.self, forKey: .usesOfficialIcon) ?? false
+        fallbackGlyph = try c.decodeIfPresent(IconGlyph.self, forKey: .fallbackGlyph)
+    }
+}
+
+extension LauncherState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        groups = try c.decode([AppGroup].self, forKey: .groups)
+        apps = try c.decode([LauncherApp].self, forKey: .apps)
+        theme = try c.decodeIfPresent(Theme.self, forKey: .theme) ?? Theme()
+        collapsedSections = try c.decodeIfPresent([String].self, forKey: .collapsedSections) ?? []
+        sectionOrder = try c.decodeIfPresent([String].self, forKey: .sectionOrder) ?? []
+        hiddenSections = try c.decodeIfPresent([String].self, forKey: .hiddenSections) ?? []
+        showDock = try c.decodeIfPresent(Bool.self, forKey: .showDock) ?? false
+        recentSearches = try c.decodeIfPresent([String].self, forKey: .recentSearches) ?? []
+        favoriteAppIDs = try c.decodeIfPresent([UUID].self, forKey: .favoriteAppIDs) ?? []
+    }
 }

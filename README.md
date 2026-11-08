@@ -52,6 +52,7 @@ You need a **Mac with Xcode** (free on the Mac App Store) and an iPhone on **iOS
 | Bring back the bottom dock | **•••** › **Groups & Dock** › **Show Dock**, then long-press apps › **Add to Dock** |
 | See more apps in a section | Swipe the row left, or tap **View All** (a search bar appears at the bottom when there are more than four rows) |
 | Show every app at once instead of swipe rows | **•••** › **Design** › Layout & behavior › Sections › **Full Grid** |
+| Use the real app logos | On by default: Go downloads each app's official icon from the App Store. Turn off in **Design › Icons › Official app icons**; pick one by hand in the icon editor › **Find App Store Icon** |
 | Change the look | **•••** › **Design** |
 | Two widgets at the top (Date & Time, Weather, Favorite Apps) | **•••** › **Design** › **Widgets** › **Show widgets**, then pick Left and Right |
 | Edge-to-edge square tiles (no spacing, bigger tap areas) | **•••** › **Design** › Style › **Tiles**, or set the **Spacing** slider yourself |

@@ -80,6 +80,11 @@ struct AppIconView: View {
 
     private var nameInside: Bool { showLabel && theme.showLabels && theme.labelsInside }
 
+    private var isPictureIcon: Bool {
+        if case .image = app.glyph { return true }
+        return false
+    }
+
     var body: some View {
         VStack(spacing: 6) {
             IconTile(
@@ -98,7 +103,9 @@ struct AppIconView: View {
                     Text(app.name)
                         .font(.system(size: 11, weight: .semibold, design: theme.fontStyle.design))
                         // Dark or light text, whichever reads better on this tile (WCAG contrast).
-                        .foregroundStyle(Color.readableText(onHex: theme.uniformIconColors ? theme.uniformIconHex : app.colorHex))
+                        // On a photo or App Store icon: white text over a soft dark fade.
+                        .foregroundStyle(isPictureIcon ? Color.white : Color.readableText(onHex: theme.uniformIconColors ? theme.uniformIconHex : app.colorHex))
+                        .shadow(color: .black.opacity(isPictureIcon ? 0.5 : 0), radius: 2, y: 1)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .padding(.horizontal, 7)

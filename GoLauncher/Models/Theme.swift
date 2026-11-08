@@ -95,6 +95,8 @@ struct Theme: Codable, Hashable {
     var showGroupCards = true
     var showClock = true
     var searchOnOpen = false
+    /// Use each app's official App Store icon where one exists.
+    var useOfficialIcons = true
 
     var labelColor: Color { Color(hex: labelColorHex) }
 
@@ -189,4 +191,41 @@ struct ThemePreset: Identifiable {
             t.fontStyle = .mono; t.cornerFactor = 0.12
         },
     ]
+}
+
+// MARK: - Tolerant loading (missing settings fall back to their defaults)
+
+extension Theme {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = Theme()
+        func value<T: Decodable>(_ key: CodingKeys, _ fallback: T) -> T {
+            (try? c.decodeIfPresent(T.self, forKey: key)) ?? fallback
+        }
+        backgroundTopHex = value(.backgroundTopHex, d.backgroundTopHex)
+        backgroundBottomHex = value(.backgroundBottomHex, d.backgroundBottomHex)
+        wallpaperFilename = (try? c.decodeIfPresent(String.self, forKey: .wallpaperFilename)) ?? nil
+        wallpaperDim = value(.wallpaperDim, d.wallpaperDim)
+        isDark = value(.isDark, d.isDark)
+        iconSize = value(.iconSize, d.iconSize)
+        cornerFactor = value(.cornerFactor, d.cornerFactor)
+        columns = value(.columns, d.columns)
+        iconSpacing = value(.iconSpacing, d.iconSpacing)
+        fillCells = value(.fillCells, d.fillCells)
+        labelsInside = value(.labelsInside, d.labelsInside)
+        showLabels = value(.showLabels, d.showLabels)
+        labelColorHex = value(.labelColorHex, d.labelColorHex)
+        fontStyle = value(.fontStyle, d.fontStyle)
+        uniformIconColors = value(.uniformIconColors, d.uniformIconColors)
+        uniformIconHex = value(.uniformIconHex, d.uniformIconHex)
+        uniformGlyphHex = value(.uniformGlyphHex, d.uniformGlyphHex)
+        showWidgets = value(.showWidgets, d.showWidgets)
+        leftWidget = value(.leftWidget, d.leftWidget)
+        rightWidget = value(.rightWidget, d.rightWidget)
+        sectionLayout = value(.sectionLayout, d.sectionLayout)
+        showGroupCards = value(.showGroupCards, d.showGroupCards)
+        showClock = value(.showClock, d.showClock)
+        searchOnOpen = value(.searchOnOpen, d.searchOnOpen)
+        useOfficialIcons = value(.useOfficialIcons, d.useOfficialIcons)
+    }
 }

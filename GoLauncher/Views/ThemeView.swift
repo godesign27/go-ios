@@ -211,6 +211,10 @@ struct ThemeView: View {
                 Slider(value: $store.state.theme.iconSpacing, in: 0...24, step: 1)
             }
             Toggle("Fill each cell", isOn: $store.state.theme.fillCells)
+            Toggle("Official app icons", isOn: Binding(
+                get: { store.state.theme.useOfficialIcons },
+                set: { store.setOfficialIcons($0) }
+            ))
             Stepper("Columns: \(store.state.theme.columns)", value: $store.state.theme.columns, in: 3...6)
             Toggle("Matching icon colors", isOn: $store.state.theme.uniformIconColors)
             if store.state.theme.uniformIconColors {
@@ -220,7 +224,7 @@ struct ThemeView: View {
         } header: {
             Text("Icons")
         } footer: {
-            Text("Matching colors gives every icon the same look. Each icon's own colors are kept for when you turn it off.")
+            Text("Official app icons are downloaded once from the App Store; built-in Apple apps that aren't on the App Store keep their symbols. Matching colors gives every other icon the same look.")
         }
     }
 

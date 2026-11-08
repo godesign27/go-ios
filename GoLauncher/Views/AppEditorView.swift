@@ -29,11 +29,15 @@ struct AppEditorView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var isLoadingPhoto = false
     @State private var confirmDelete = false
+    /// The user changed the icon themselves, so Go won't swap in the App Store icon.
+    @State private var iconTouched = false
+    @State private var pickedOfficialIcon: Bool
 
     init(app: LauncherApp, isNew: Bool, onFinish: @escaping () -> Void) {
         self.isNew = isNew
         self.onFinish = onFinish
         _draft = State(initialValue: app)
+        _pickedOfficialIcon = State(initialValue: app.usesOfficialIcon)
 
         var kind = IconKind.symbol
         var symbol = "app.fill"
@@ -122,6 +126,8 @@ struct AppEditorView: View {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let name = store.saveImage(data, maxDimension: 300) {
                     imageName = name
+                    pickedOfficialIcon = false
+                    iconTouched = true
                 }
             }
         }
@@ -211,7 +217,7 @@ struct AppEditorView: View {
 
     private var iconSection: some View {
         Section("Icon") {
-            Picker("Style", selection: $iconKind) {
+            Picker("Style", selection: Binding(get: { iconKind }, set: { iconKind = $0; iconTouched = true })) {
                 ForEach(IconKind.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
@@ -219,7 +225,7 @@ struct AppEditorView: View {
             switch iconKind {
             case .symbol:
                 NavigationLink {
-                    SymbolPickerView(selection: $symbolName)
+                    SymbolPickerView(selection: Binding(get: { symbolName }, set: { symbolName = $0; iconTouched = true }))
                 } label: {
                     HStack {
                         Text("Symbol")
@@ -245,6 +251,18 @@ struct AppEditorView: View {
                         }
                     }
                 }
+            }
+            NavigationLink {
+                AppStoreIconSearchView(initialTerm: draft.name) { data in
+                    if let name = store.saveOfficialIcon(data) {
+                        imageName = name
+                        iconKind = .photo
+                        pickedOfficialIcon = true
+                        iconTouched = true
+                    }
+                }
+            } label: {
+                Label("Find App Store Icon", systemImage: "app.badge.checkmark")
             }
         }
     }
@@ -328,7 +346,106 @@ struct AppEditorView: View {
         app.name = app.name.trimmingCharacters(in: .whitespaces)
         app.glyph = composedGlyph
         app.launch = composedLaunch
+        if iconKind == .photo && imageName != nil {
+            app.usesOfficialIcon = pickedOfficialIcon
+            if pickedOfficialIcon { app.fallbackGlyph = .symbol(symbolName) }
+        } else {
+            app.usesOfficialIcon = false
+        }
+        // A hand-picked icon wins over the automatic App Store icon.
+        if iconTouched { app.iconLookupDone = true }
         store.upsert(app)
         onFinish()
+    }
+}
+
+/// Search the App Store and pick an app's official icon.
+struct AppStoreIconSearchView: View {
+    let initialTerm: String
+    let onPick: (Data) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var term = ""
+    @State private var results: [AppStoreIcons.Item] = []
+    @State private var isSearching = false
+    @State private var downloadingID: Int?
+    @State private var didSearch = false
+
+    var body: some View {
+        List {
+            Section {
+                HStack {
+                    TextField("App name", text: $term)
+                        .autocorrectionDisabled()
+                        .submitLabel(.search)
+                        .onSubmit { Task { await runSearch() } }
+                    Button("Search") { Task { await runSearch() } }
+                        .disabled(term.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            } footer: {
+                Text("Icons come from the App Store. Pick the one that matches the app on your phone.")
+            }
+
+            Section {
+                if isSearching {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                } else if didSearch && results.isEmpty {
+                    Text("No apps found for “\(term)”. Try the name as it appears in the App Store.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(results) { item in
+                    Button {
+                        Task { await pick(item) }
+                    } label: {
+                        HStack(spacing: 12) {
+                            AsyncImage(url: item.thumbnailURL) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                Color.secondary.opacity(0.15)
+                            }
+                            .frame(width: 44, height: 44)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.trackName).foregroundStyle(.primary).lineLimit(1)
+                                if let seller = item.sellerName {
+                                    Text(seller).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                }
+                            }
+                            Spacer()
+                            if downloadingID == item.id { ProgressView() }
+                        }
+                    }
+                    .disabled(downloadingID != nil)
+                }
+            }
+        }
+        .navigationTitle("App Store Icon")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if term.isEmpty {
+                term = initialTerm
+                if !term.isEmpty { await runSearch() }
+            }
+        }
+    }
+
+    @MainActor
+    private func runSearch() async {
+        let query = term.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return }
+        isSearching = true
+        results = await AppStoreIcons.search(query)
+        isSearching = false
+        didSearch = true
+    }
+
+    @MainActor
+    private func pick(_ item: AppStoreIcons.Item) async {
+        downloadingID = item.id
+        if let data = await AppStoreIcons.imageData(for: item) {
+            onPick(data)
+            dismiss()
+        }
+        downloadingID = nil
     }
 }

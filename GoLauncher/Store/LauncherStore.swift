@@ -17,6 +17,7 @@ final class LauncherStore: ObservableObject {
             .sink { [weak self] _ in self?.saveNow() }
             .store(in: &cancellables)
         cleanupUnusedImages()
+        fetchOfficialIcons()
     }
 
     // MARK: - Queries
@@ -226,6 +227,7 @@ final class LauncherStore: ObservableObject {
             state.apps[index] = app
         } else {
             state.apps.append(app)
+            if !app.iconLookupDone { fetchOfficialIcons() }
         }
     }
 
@@ -316,6 +318,72 @@ final class LauncherStore: ObservableObject {
         newState.groups.removeAll { doomed.contains($0.id) }
         newState.sectionOrder.removeAll { key in doomed.contains { $0.uuidString == key } }
         state = newState
+    }
+
+    // MARK: - Official app icons
+
+    private var iconFetchRunning = false
+
+    /// Fetches the official App Store icon for every app that hasn't been checked yet.
+    /// Runs on launch and after adding apps; each app is looked up once.
+    func fetchOfficialIcons() {
+        guard state.theme.useOfficialIcons, !iconFetchRunning else { return }
+        let pending = state.apps.filter { !$0.iconLookupDone }
+        guard !pending.isEmpty else { return }
+        iconFetchRunning = true
+        Task {
+            for app in pending {
+                let item = await AppStoreIcons.bestMatch(for: app)
+                let data: Data? = item == nil ? nil : await AppStoreIcons.imageData(for: item!)
+                await MainActor.run {
+                    self.applyOfficialIcon(appID: app.id, data: data)
+                }
+            }
+            await MainActor.run { self.iconFetchRunning = false }
+        }
+    }
+
+    private func applyOfficialIcon(appID: UUID, data: Data?) {
+        guard let index = state.apps.firstIndex(where: { $0.id == appID }) else { return }
+        var app = state.apps[index]
+        app.iconLookupDone = true
+        // Only replace symbol/emoji icons; never a photo the user picked.
+        if state.theme.useOfficialIcons, let data, !isPhoto(app.glyph),
+           let file = saveImage(data, maxDimension: 300) {
+            app.fallbackGlyph = app.glyph
+            app.glyph = .image(file)
+            app.usesOfficialIcon = true
+        }
+        state.apps[index] = app
+    }
+
+    /// Sets an icon the user picked from App Store search (from the icon editor).
+    func saveOfficialIcon(_ data: Data) -> String? {
+        saveImage(data, maxDimension: 300)
+    }
+
+    /// Design › Official App Icons. Off restores the symbol icons; on fetches again.
+    func setOfficialIcons(_ enabled: Bool) {
+        state.theme.useOfficialIcons = enabled
+        var apps = state.apps
+        for index in apps.indices {
+            if enabled {
+                if !apps[index].usesOfficialIcon && !isPhoto(apps[index].glyph) {
+                    apps[index].iconLookupDone = false
+                }
+            } else if apps[index].usesOfficialIcon {
+                apps[index].glyph = apps[index].fallbackGlyph ?? .symbol("app.fill")
+                apps[index].usesOfficialIcon = false
+                apps[index].iconLookupDone = false
+            }
+        }
+        state.apps = apps
+        if enabled { fetchOfficialIcons() }
+    }
+
+    private func isPhoto(_ glyph: IconGlyph) -> Bool {
+        if case .image = glyph { return true }
+        return false
     }
 
     func resetToDefault() {
