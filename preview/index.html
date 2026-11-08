@@ -407,9 +407,9 @@ body {
     serif: ['Serif', '"Newsreader", "New York", Georgia, serif'],
     mono: ['Mono', '"JetBrains Mono", ui-monospace, Menlo, monospace'],
   };
-  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true, iconSpacing: 10, fillCells: false, labelsInside: false, showWidgets: false, leftWidget: "dateTime", rightWidget: "weather", sectionLayout: "rows" };
+  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true, iconSpacing: 6, fillCells: false, labelsInside: false, showWidgets: false, leftWidget: "dateTime", rightWidget: "weather", sectionLayout: "rows" };
   const TILES = { iconSpacing: 0, cornerFactor: 0, fillCells: true, labelsInside: true, showLabels: true, showGroupCards: false };
-  const CLASSIC = { iconSpacing: 10, cornerFactor: .24, fillCells: false, labelsInside: false, showGroupCards: true };
+  const CLASSIC = { iconSpacing: 6, cornerFactor: .24, fillCells: false, labelsInside: false, showGroupCards: true };
   const matches = (t, p) => Object.keys(p).every(k => t[k] === p[k]);
   const isTiles = t => matches(t, TILES), isClassic = t => matches(t, CLASSIC);
   const PRESETS = [
@@ -439,7 +439,7 @@ body {
     return { groups: g, apps, theme: { ...DEFAULT_THEME, showWidgets: true }, favoriteAppIDs: ["Messages", "Safari", "Music", "Claude"].map(n => apps.find(a => a.name === n).id), collapsedSections: [], sectionOrder: [], hiddenSections: [], showDock: false, recentSearches: ["spotify", "claude", "maps", "weather"] };
   }
 
-  const KEY = "go-launcher-preview-v6";
+  const KEY = "go-launcher-preview-v7";
   let state;
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
   if (!state || !state.apps || !state.groups || !state.theme) state = seed();

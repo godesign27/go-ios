@@ -72,7 +72,7 @@ struct Theme: Codable, Hashable {
     var cornerFactor: Double = 0.24
     var columns = 4
     /// Gap between icons in points. 0 = tiles touch.
-    var iconSpacing: Double = 10
+    var iconSpacing: Double = 6
     /// Icons stretch to fill their whole grid cell (bigger tap targets).
     var fillCells = false
     /// App names drawn inside the icon instead of underneath.
@@ -118,7 +118,7 @@ struct Theme: Codable, Hashable {
     }
 
     var isClassic: Bool {
-        iconSpacing == 10 && cornerFactor == 0.24 && !fillCells && !labelsInside && showGroupCards
+        iconSpacing == 6 && cornerFactor == 0.24 && !fillCells && !labelsInside && showGroupCards
     }
 
     /// Edge-to-edge square tiles: no gaps, square corners, each icon fills its cell, names inside.
@@ -133,7 +133,7 @@ struct Theme: Codable, Hashable {
 
     /// The standard iOS-like look.
     mutating func applyClassic() {
-        iconSpacing = 10
+        iconSpacing = 6
         cornerFactor = 0.24
         fillCells = false
         labelsInside = false
