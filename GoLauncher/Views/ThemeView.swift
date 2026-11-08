@@ -246,6 +246,7 @@ struct ThemeView: View {
             }
             .pickerStyle(.segmented)
             Toggle("Show clock & date", isOn: $store.state.theme.showClock)
+                .disabled(store.state.theme.showsDateWidget)
             Toggle("Group cards", isOn: $store.state.theme.showGroupCards)
             Toggle("Open straight into search", isOn: $store.state.theme.searchOnOpen)
         } header: {

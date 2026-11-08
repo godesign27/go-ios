@@ -132,7 +132,7 @@ struct HomeView: View {
 
     private var header: some View {
         HStack(alignment: .top) {
-            if theme.showClock {
+            if theme.showsHeaderClock {
                 TimelineView(.everyMinute) { context in
                     VStack(alignment: .leading, spacing: 0) {
                         Text(context.date, format: .dateTime.weekday(.wide).month(.wide).day())

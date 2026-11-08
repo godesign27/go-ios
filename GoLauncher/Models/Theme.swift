@@ -98,6 +98,16 @@ struct Theme: Codable, Hashable {
 
     var labelColor: Color { Color(hex: labelColorHex) }
 
+    /// A Date & Time widget is on screen, so the header clock would repeat it.
+    var showsDateWidget: Bool {
+        showWidgets && (leftWidget == .dateTime || rightWidget == .dateTime)
+    }
+
+    /// The big clock in the top-left corner.
+    var showsHeaderClock: Bool {
+        showClock && !showsDateWidget
+    }
+
     /// Space between rows: a little extra when names sit under the icons.
     var rowSpacing: Double {
         showLabels && !labelsInside ? iconSpacing + 6 : iconSpacing

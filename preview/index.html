@@ -187,6 +187,7 @@ body {
 .web-btn svg { width: 16px; height: 16px; }
 .hint { text-align: center; font-size: 12px; opacity: .6; margin-top: 10px; }
 
+#headBtn { margin-left: auto; }
 .ghead-row { display: flex; align-items: center; gap: 10px; }
 .ghead-row .ghead:first-child { flex: 1; min-width: 0; }
 .chev-btn { width: 24px; flex: none; justify-content: center; }
@@ -519,7 +520,9 @@ body {
     s.setProperty("--label-shadow", t.isDark ? "0 1px 2px rgba(0,0,0,.35)" : "none");
     s.setProperty("--search-tint", t.isDark ? "rgba(10,10,20,.35)" : "rgba(255,255,255,.4)");
     screen.classList.toggle("light", !t.isDark);
-    $("clock").hidden = !t.showClock;
+    // Hide the header clock when a Date & Time widget already shows it.
+    const dateWidget = t.showWidgets && [t.leftWidget, t.rightWidget].includes("dateTime");
+    $("clock").hidden = !t.showClock || dateWidget;
   }
 
   // ---------- Home ----------
@@ -882,7 +885,7 @@ body {
           <div class="row"><span>Font</span><select id="fontSel" aria-label="Font">${Object.entries(FONTS).map(([k, v]) => `<option value="${k}" ${k === t.fontStyle ? "selected" : ""}>${v[0]}</option>`).join("")}</select></div></div>
         <div class="sec-title">Layout & behavior</div><div class="box">
           <div class="row col"><span>Sections</span><div class="seg"><button type="button" data-act="layout" data-v="rows" class="${t.sectionLayout !== "grid" ? "on" : ""}">Swipe Rows</button><button type="button" data-act="layout" data-v="grid" class="${t.sectionLayout === "grid" ? "on" : ""}">Full Grid</button></div></div>
-          <div class="row"><span>Show clock & date</span><label class="switch"><input type="checkbox" data-theme-bool="showClock" ${t.showClock ? "checked" : ""}><span></span></label></div>
+          <div class="row ${t.showWidgets && [t.leftWidget, t.rightWidget].includes("dateTime") ? "disabled" : ""}"><span>Show clock & date</span><label class="switch"><input type="checkbox" data-theme-bool="showClock" ${t.showClock ? "checked" : ""}><span></span></label></div>
           <div class="row"><span>Group cards</span><label class="switch"><input type="checkbox" data-theme-bool="showGroupCards" ${t.showGroupCards ? "checked" : ""}><span></span></label></div></div>
         <div class="box" style="margin-top:26px"><div class="row"><button class="rowbtn danger" data-act="reset" type="button">Reset Everything to Default</button></div></div>
       </div></div>`;
