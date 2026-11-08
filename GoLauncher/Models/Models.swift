@@ -87,17 +87,18 @@ struct LauncherState: Codable {
     var showDock = false
     /// Newest first.
     var recentSearches: [String] = []
-    /// Up to 4 apps shown in the Favorite Apps widget.
+    /// Your favorites, in order. The Favorites section shows them all; the widget shows the first four.
     var favoriteAppIDs: [UUID] = []
 }
 
 /// Sections Go fills in by itself.
 enum SmartSection: String, CaseIterable {
-    case recent, mostUsed, attention
+    case recent, favorites, mostUsed, attention
 
     var title: String {
         switch self {
         case .recent: return "Recently Used"
+        case .favorites: return "Favorites"
         case .mostUsed: return "Most Used"
         case .attention: return "Needs Attention"
         }
@@ -106,6 +107,7 @@ enum SmartSection: String, CaseIterable {
     var symbol: String {
         switch self {
         case .recent: return "clock.arrow.circlepath"
+        case .favorites: return "star.fill"
         case .mostUsed: return "flame.fill"
         case .attention: return "flag.fill"
         }
@@ -114,6 +116,7 @@ enum SmartSection: String, CaseIterable {
     var emptyText: String {
         switch self {
         case .recent, .mostUsed: return "Apps you open from Go will show up here."
+        case .favorites: return "Long-press an app and choose Add to Favorites."
         case .attention: return "Long-press an app and choose Needs Attention to flag it here."
         }
     }

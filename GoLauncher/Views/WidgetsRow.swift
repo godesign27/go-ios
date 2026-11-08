@@ -184,7 +184,7 @@ struct FavoritesWidget: View {
     }
 }
 
-/// Design › Widgets › Favorite Apps: choose up to four.
+/// Design › Widgets › Favorite Apps: choose your favorites (also editable by long-pressing an app).
 struct FavoritesPickerView: View {
     @EnvironmentObject private var store: LauncherStore
 
@@ -213,10 +213,9 @@ struct FavoritesPickerView: View {
                             }
                         }
                     }
-                    .disabled(!selected && store.state.favoriteAppIDs.count >= 4)
                 }
             } footer: {
-                Text("Pick up to 4. Until you pick, the widget shows your most used apps.")
+                Text("These are your Favorites. The Favorites section shows them all; the widget shows the first four. Until you pick any, the widget shows your most used apps.")
             }
         }
         .navigationTitle("Favorite Apps")

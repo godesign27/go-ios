@@ -52,15 +52,20 @@ final class LauncherStore: ObservableObject {
         return mostUsed.count == 4 ? mostUsed : Array(state.apps.prefix(4))
     }
 
+    /// Every favorite, in the order you added them (the Favorites section).
+    var allFavoriteApps: [LauncherApp] {
+        state.favoriteAppIDs.compactMap { id in state.apps.first { $0.id == id } }
+    }
+
     func isFavorite(_ appID: UUID) -> Bool {
         state.favoriteAppIDs.contains(appID)
     }
 
-    /// Adds or removes an app from the Favorite Apps widget (max 4).
+    /// Adds or removes an app from Favorites (the section and the widget).
     func toggleFavorite(_ appID: UUID) {
         if let index = state.favoriteAppIDs.firstIndex(of: appID) {
             state.favoriteAppIDs.remove(at: index)
-        } else if state.favoriteAppIDs.count < 4 {
+        } else {
             state.favoriteAppIDs.append(appID)
         }
     }
@@ -92,7 +97,17 @@ final class LauncherStore: ObservableObject {
         let valid = Set(groupKeys + SmartSection.allCases.map(\.rawValue))
         var keys = state.sectionOrder.filter { valid.contains($0) }
         if keys.isEmpty {
-            keys = [SmartSection.recent.rawValue, SmartSection.mostUsed.rawValue] + groupKeys + [SmartSection.attention.rawValue]
+            // Default: Recently Used, Favorites, first group (Essentials), Most Used, other groups, Needs Attention.
+            keys = [SmartSection.recent.rawValue, SmartSection.favorites.rawValue]
+            keys += groupKeys.prefix(1)
+            keys.append(SmartSection.mostUsed.rawValue)
+            keys += groupKeys.dropFirst()
+            keys.append(SmartSection.attention.rawValue)
+        }
+        // Favorites was added later: slot it in under Recently Used for existing layouts.
+        if !keys.contains(SmartSection.favorites.rawValue) {
+            let index = keys.firstIndex(of: SmartSection.recent.rawValue).map { $0 + 1 } ?? 0
+            keys.insert(SmartSection.favorites.rawValue, at: index)
         }
         for key in groupKeys where !keys.contains(key) {
             if let attention = keys.firstIndex(of: SmartSection.attention.rawValue) {
@@ -428,6 +443,10 @@ final class LauncherStore: ObservableObject {
             return app
         }
 
-        return LauncherState(groups: [essentials, everyday, tools, ai], apps: starterApps, theme: Theme())
+        var state = LauncherState(groups: [essentials, everyday, tools, ai], apps: starterApps, theme: Theme())
+        // Starter favorites; change them by long-pressing any app.
+        let favorites = ["Messages", "Safari", "Music", "Claude"]
+        state.favoriteAppIDs = favorites.compactMap { name in starterApps.first { $0.name == name }?.id }
+        return state
     }
 }

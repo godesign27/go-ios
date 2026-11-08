@@ -3,7 +3,7 @@
 **Go** is a launcher app for iPhone. Design your own home screen and open any app from it:
 
 - **Custom icons and colors.** Every icon can be an SF Symbol, an emoji, or a photo, on a solid or gradient color. Icon shape can be anything from square to circle.
-- **Your own organization.** The screen opens with **Recently Used** and **Most Used**, which fill in automatically. Your own named groups come next (the starter set includes **AI**), then **Needs Attention** for apps you've flagged. Reorder by drag and drop, and collapse any section.
+- **Your own organization.** The screen opens with **Recently Used** (two rows) and **Favorites**, then Essentials, **Most Used**, your other groups (including **AI**), and **Needs Attention** for apps you've flagged. Rearrange any of them in Groups & Dock. Reorder by drag and drop, and collapse any section.
 - **Quick search and launch.** Type a few letters, press **Go**, and the best match opens. Results are ranked by name, extra keywords, and fuzzy matching, then by the apps you use most.
 - **Themes.** Six presets (Midnight, Sunset, Ocean, Mint, Paper, Mono) plus full control over gradient, wallpaper photo, fonts, label colors, columns, icon size, and matching "aesthetic" icon colors. Changes show live as you edit.
 
@@ -46,6 +46,7 @@ You need a **Mac with Xcode 15 or later** (free on the Mac App Store) and an iPh
 | Rearrange | Long-press an icon and drag it onto another icon or onto a group title |
 | Move to another group | Long-press › **Move to Group** |
 | Edit everything at once | **•••** › **Edit Layout**. Icons wiggle: tap one to edit, **–** to remove, **+** to add |
+| Add an app to Favorites | Long-press › **Add to Favorites**. The Favorites section shows them all; the Favorite Apps widget shows the first four. |
 | Flag an app to come back to | Long-press › **Needs Attention**. Opening the app clears the flag. |
 | Arrange sections, rename/add/delete groups, hide automatic sections | **•••** › **Groups & Dock** |
 | Bring back the bottom dock | **•••** › **Groups & Dock** › **Show Dock**, then long-press apps › **Add to Dock** |

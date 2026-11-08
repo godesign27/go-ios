@@ -226,7 +226,8 @@ struct HomeView: View {
 
     private func smartApps(_ kind: SmartSection) -> [LauncherApp] {
         switch kind {
-        case .recent: return store.recentApps(limit: theme.columns)
+        case .recent: return store.recentApps(limit: theme.columns * 2) // two rows
+        case .favorites: return store.allFavoriteApps
         case .mostUsed: return store.mostUsedApps(limit: theme.columns)
         case .attention: return store.attentionApps
         }
@@ -235,7 +236,7 @@ struct HomeView: View {
     private func smartSection(_ kind: SmartSection) -> some View {
         let apps = smartApps(kind)
         let collapsed = store.isSectionCollapsed(kind.rawValue)
-        let showCount = (collapsed || kind == .attention) && !apps.isEmpty
+        let showCount = (collapsed || kind == .attention || kind == .favorites) && !apps.isEmpty
         return sectionCard {
             sectionHeader(title: kind.title, symbol: kind.symbol, count: showCount ? apps.count : nil, collapsed: collapsed) {
                 store.toggleSection(kind.rawValue)
@@ -356,6 +357,10 @@ struct HomeView: View {
     @ViewBuilder
     private func contextMenu(for app: LauncherApp) -> some View {
         Button { activeSheet = .edit(app) } label: { Label("Edit Icon", systemImage: "pencil") }
+        Button { store.toggleFavorite(app.id) } label: {
+            Label(store.isFavorite(app.id) ? "Remove from Favorites" : "Add to Favorites",
+                  systemImage: store.isFavorite(app.id) ? "star.slash" : "star")
+        }
         Button { store.toggleAttention(app.id) } label: {
             Label(app.needsAttention ? "Clear Needs Attention" : "Needs Attention",
                   systemImage: app.needsAttention ? "flag.slash" : "flag")

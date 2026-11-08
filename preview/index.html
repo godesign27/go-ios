@@ -290,7 +290,7 @@ body {
     <p>Your own iPhone home screen, with custom icons, your own groups, and search that opens apps as you type. This page copies the SwiftUI app's screens so you can try them. Tapping an app shows what it would open on your phone.</p>
     <ul class="tips">
       <li><b>Open</b><span>Tap an icon, or type in search and press Enter.</span></li>
-      <li><b>Customize</b><span>Long-press or right-click an icon to edit it, flag it as Needs Attention, or move it.</span></li>
+      <li><b>Customize</b><span>Long-press or right-click an icon to edit it, add it to Favorites, flag it as Needs Attention, or move it.</span></li>
       <li><b>Menu</b><span>The ••• button has Add App, Edit Layout, Groups and Design.</span></li>
       <li><b>Rearrange</b><span>In Edit Layout, drag an icon onto another icon or onto a group title.</span></li>
     </ul>
@@ -402,10 +402,10 @@ body {
     apps.forEach(a => { const h = history[a.name]; if (h) { a.launchCount = h[0]; a.lastLaunched = now - h[1] * min; } });
     apps.forEach(a => { if (a.name === "Reminders" || a.name === "Calendar") a.needsAttention = true; });
     apps.forEach(a => { if (["Phone", "Messages", "Safari", "Music"].includes(a.name)) a.isDocked = true; });
-    return { groups: g, apps, theme: { ...DEFAULT_THEME, showWidgets: true }, favoriteAppIDs: [], collapsedSections: [], sectionOrder: [], hiddenSections: [], showDock: false, recentSearches: ["spotify", "claude", "maps", "weather"] };
+    return { groups: g, apps, theme: { ...DEFAULT_THEME, showWidgets: true }, favoriteAppIDs: ["Messages", "Safari", "Music", "Claude"].map(n => apps.find(a => a.name === n).id), collapsedSections: [], sectionOrder: [], hiddenSections: [], showDock: false, recentSearches: ["spotify", "claude", "maps", "weather"] };
   }
 
-  const KEY = "go-launcher-preview-v4";
+  const KEY = "go-launcher-preview-v5";
   let state;
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
   if (!state || !state.apps || !state.groups || !state.theme) state = seed();
@@ -423,12 +423,14 @@ body {
   const mostUsedApps = n => state.apps.filter(a => a.launchCount > 0).sort((x, y) => y.launchCount - x.launchCount).slice(0, n);
   const attentionApps = () => state.apps.filter(a => a.needsAttention);
   const dockApps = () => state.apps.filter(a => a.isDocked).slice(0, 5);
-  const SMART_KEYS = ["recent", "mostUsed", "attention"];
+  const SMART_KEYS = ["recent", "favorites", "mostUsed", "attention"];
   // Every section in display order: automatic section keys and group ids. New groups land before Needs Attention.
   function orderedKeys() {
     const gk = state.groups.map(g => g.id), valid = new Set([...gk, ...SMART_KEYS]);
     let keys = (state.sectionOrder || []).filter(k => valid.has(k));
-    if (!keys.length) keys = ["recent", "mostUsed", ...gk, "attention"];
+    // Default: Recently Used, Favorites, Essentials, Most Used, other groups, Needs Attention.
+    if (!keys.length) keys = ["recent", "favorites", ...gk.slice(0, 1), "mostUsed", ...gk.slice(1), "attention"];
+    if (!keys.includes("favorites")) keys.splice(keys.indexOf("recent") + 1, 0, "favorites");
     gk.forEach(k => { if (!keys.includes(k)) { const i = keys.indexOf("attention"); i >= 0 ? keys.splice(i, 0, k) : keys.push(k); } });
     SMART_KEYS.forEach(k => { if (!keys.includes(k)) keys.push(k); });
     return keys;
@@ -439,6 +441,7 @@ body {
   }
   const SMART = {
     recent: ["Recently Used", "history", "Apps you open from Go will show up here."],
+    favorites: ["Favorites", "star", "Long-press an app and choose Add to Favorites."],
     mostUsed: ["Most Used", "flame", "Apps you open from Go will show up here."],
     attention: ["Needs Attention", "flag", "Long-press an app and choose Needs Attention to flag it here."],
   };
@@ -508,7 +511,7 @@ body {
         const [title, icon, empty] = SMART[key], collapsed = (state.collapsedSections || []).includes(key);
         return `<section class="group smart">
           <button class="ghead ${collapsed ? "collapsed" : ""}" type="button" data-act="smart-collapse" data-key="${key}">
-            <i class="sicon" data-lucide="${icon}"></i>${title}${(collapsed || key === "attention") && apps.length ? `<span class="count">${apps.length}</span>` : ""}<i class="chev" data-lucide="chevron-down"></i></button>
+            <i class="sicon" data-lucide="${icon}"></i>${title}${(collapsed || key === "attention" || key === "favorites") && apps.length ? `<span class="count">${apps.length}</span>` : ""}<i class="chev" data-lucide="chevron-down"></i></button>
           ${collapsed ? "" : apps.length ? `<div class="grid">${apps.map(a => cellHTML(a, false, true)).join("")}</div>` : `<div class="empty" style="text-align:left">${empty}</div>`}
         </section>`;
       };
@@ -521,7 +524,7 @@ body {
           ${!apps.length && !editing ? `<div class="empty">Empty. Drag apps here, or use ••• › Edit Layout.</div>` : ""}`}
         </section>`;
       };
-      const smartApps = { recent: () => recentApps(t.columns), mostUsed: () => mostUsedApps(t.columns), attention: attentionApps };
+      const smartApps = { recent: () => recentApps(t.columns * 2), favorites: () => (state.favoriteAppIDs || []).map(byId).filter(Boolean), mostUsed: () => mostUsedApps(t.columns), attention: attentionApps };
       content.innerHTML = orderedKeys().filter(k => !(state.hiddenSections || []).includes(k)).map(k => {
         if (smartApps[k]) return smart(k, smartApps[k]());
         const g = state.groups.find(x => x.id === k); return g ? groupHTML(g) : "";
@@ -618,6 +621,7 @@ body {
       ? `<div class="act-msg">Remove ${esc(a.name)} from Go? The real app stays on your iPhone.</div>
          <button class="danger" data-act="confirm-remove" data-id="${a.id}" type="button">Remove from Go<i data-lucide="trash-2"></i></button>`
       : `<button data-act="edit" data-id="${a.id}" type="button">Edit Icon<i data-lucide="pencil"></i></button>
+         <button data-act="favorite" data-id="${a.id}" type="button">${(state.favoriteAppIDs || []).includes(a.id) ? "Remove from Favorites" : "Add to Favorites"}<i data-lucide="${(state.favoriteAppIDs || []).includes(a.id) ? "star-off" : "star"}"></i></button>
          <button data-act="attention" data-id="${a.id}" type="button">${a.needsAttention ? "Clear Needs Attention" : "Needs Attention"}<i data-lucide="${a.needsAttention ? "flag-off" : "flag"}"></i></button>
          ${state.showDock ? `<button data-act="dock" data-id="${a.id}" type="button">${a.isDocked ? "Remove from Dock" : "Add to Dock"}<i data-lucide="dock"></i></button>` : ""}
          ${state.groups.filter(g => g.id !== a.groupID).map(g => `<button data-act="move" data-id="${a.id}" data-gid="${g.id}" type="button">Move to ${esc(g.name)}<i data-lucide="folder-input"></i></button>`).join("")}
@@ -770,9 +774,9 @@ body {
           <div class="row"><span>Left</span><select id="wLeft" aria-label="Left widget">${Object.entries(WIDGETS).map(([k, n]) => `<option value="${k}" ${k === t.leftWidget ? "selected" : ""}>${n}</option>`).join("")}</select></div>
           <div class="row"><span>Right</span><select id="wRight" aria-label="Right widget">${Object.entries(WIDGETS).map(([k, n]) => `<option value="${k}" ${k === t.rightWidget ? "selected" : ""}>${n}</option>`).join("")}</select></div>
           <div class="row"><button class="rowbtn" data-act="fav-list" type="button" style="color:var(--row-fg)">Favorite Apps</button><span class="val">${(state.favoriteAppIDs || []).length ? state.favoriteAppIDs.length + " picked" : "Most used"}</span><i data-lucide="${favListOpen ? "chevron-down" : "chevron-right"}" style="width:16px;height:16px;color:var(--row-muted)"></i></div>
-          ${favListOpen ? `<div class="fav-list">${state.apps.map(a => { const on = (state.favoriteAppIDs || []).includes(a.id), full = (state.favoriteAppIDs || []).length >= 4; return `<div class="row"><span style="display:flex;align-items:center;gap:10px"><span class="mini" style="--icon:28px;width:28px;display:block">${tileHTML(a.glyph, a.colorHex, a.secondaryColorHex, a.glyphColorHex)}</span>${esc(a.name)}</span><input type="checkbox" data-fav="${a.id}" ${on ? "checked" : ""} ${!on && full ? "disabled" : ""} aria-label="Favorite ${esc(a.name)}" style="width:20px;height:20px;accent-color:var(--tint)"></div>`; }).join("")}</div>` : ""}` : ""}
+          ${favListOpen ? `<div class="fav-list">${state.apps.map(a => { const on = (state.favoriteAppIDs || []).includes(a.id), full = false; return `<div class="row"><span style="display:flex;align-items:center;gap:10px"><span class="mini" style="--icon:28px;width:28px;display:block">${tileHTML(a.glyph, a.colorHex, a.secondaryColorHex, a.glyphColorHex)}</span>${esc(a.name)}</span><input type="checkbox" data-fav="${a.id}" ${on ? "checked" : ""} ${!on && full ? "disabled" : ""} aria-label="Favorite ${esc(a.name)}" style="width:20px;height:20px;accent-color:var(--tint)"></div>`; }).join("")}</div>` : ""}` : ""}
         </div>
-        <div class="sec-foot">${t.showWidgets ? "Pick up to 4 favorite apps; until you do, the widget shows your most used apps. In this preview the weather is sample data; on iPhone it uses your location." : "Two widgets side by side at the top of your home screen."}</div>
+        <div class="sec-foot">${t.showWidgets ? "These are your Favorites: the Favorites section shows them all and the widget shows the first four. In this preview the weather is sample data; on iPhone it uses your location." : "Two widgets side by side at the top of your home screen."}</div>
         <div class="sec-title">Presets</div><div class="box"><div class="row col"><div class="presets">
           ${PRESETS.map(([n, p]) => { const pt = { ...DEFAULT_THEME, ...p }; const cols = ["#F472B6", "#818CF8", "#34D399", "#FBBF24"];
             return `<button class="preset ${presetOn(n) ? "on" : ""}" type="button" data-act="preset" data-v="${n}"><span class="sw" style="background:linear-gradient(${pt.backgroundTopHex},${pt.backgroundBottomHex})">${cols.map(c => `<i style="background:${pt.uniformIconColors ? pt.uniformIconHex : c};border-radius:${pt.cornerFactor * 16}px"></i>`).join("")}</span><span style="font-family:${FONTS[pt.fontStyle][1]}">${n}</span></button>`; }).join("")}
@@ -904,6 +908,7 @@ body {
       case "g-del": { if (state.groups.length < 2) return; const rest = state.groups.filter(g => g.id !== gid); state.apps.forEach(a => { if (a.groupID === gid) a.groupID = rest[0].id; }); state.groups = rest; state.sectionOrder = (state.sectionOrder || []).filter(k => k !== gid); render(); renderGroups(); break; }
       // design
       case "preset": Object.assign(state.theme, PRESETS.find(p => p[0] === v)[1]); render(); renderDesign(); break;
+      case "favorite": { const f = state.favoriteAppIDs || (state.favoriteAppIDs = []), i = f.indexOf(id), a = byId(id); if (i >= 0) f.splice(i, 1); else f.push(id); closeOverlay(); render(); toast(i >= 0 ? `Removed ${esc(a.name)} from Favorites` : `Added ${esc(a.name)} to Favorites`); break; }
       case "fav-list": favListOpen = !favListOpen; renderDesign(); break;
       case "style": Object.assign(state.theme, v === "Tiles" ? TILES : CLASSIC); render(); renderDesign(); break;
       case "cols": state.theme.columns = Math.min(6, Math.max(3, state.theme.columns + Number(v))); $("colN").textContent = state.theme.columns; render(); break;
@@ -952,7 +957,7 @@ body {
     else if (el.dataset.themeBool) { t[el.dataset.themeBool] = el.checked; render(); if (el.dataset.rerender) renderDesign(); }
     else if (el.id === "fontSel") { t.fontStyle = el.value; render(); }
     else if (el.id === "wLeft" || el.id === "wRight") { t[el.id === "wLeft" ? "leftWidget" : "rightWidget"] = el.value; render(); }
-    else if (el.dataset.fav) { const f = state.favoriteAppIDs || (state.favoriteAppIDs = []); const i = f.indexOf(el.dataset.fav); if (i >= 0) f.splice(i, 1); else if (f.length < 4) f.push(el.dataset.fav); render(); renderDesign(); }
+    else if (el.dataset.fav) { const f = state.favoriteAppIDs || (state.favoriteAppIDs = []); const i = f.indexOf(el.dataset.fav); if (i >= 0) f.splice(i, 1); else f.push(el.dataset.fav); render(); renderDesign(); }
   });
 
   $("resetAll").addEventListener("click", () => { state = seed(); editing = false; closeSearch(); closeOverlay(); render(); toast("Reset to the starter layout"); });
