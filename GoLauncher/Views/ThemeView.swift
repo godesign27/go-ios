@@ -11,6 +11,7 @@ struct ThemeView: View {
     var body: some View {
         NavigationStack {
             Form {
+                styleSection
                 presetsSection
                 backgroundSection
                 iconsSection
@@ -45,6 +46,50 @@ struct ThemeView: View {
     }
 
     // MARK: Sections
+
+    private var styleSection: some View {
+        Section {
+            HStack(spacing: 12) {
+                styleCard(name: "Classic", isOn: store.state.theme.isClassic, tiles: false) {
+                    store.state.theme.applyClassic()
+                }
+                styleCard(name: "Tiles", isOn: store.state.theme.isTiles, tiles: true) {
+                    store.state.theme.applyTiles()
+                }
+            }
+            .padding(.vertical, 6)
+        } header: {
+            Text("Style")
+        } footer: {
+            Text("Tiles: no spacing, square edges, and every app fills its whole cell for a bigger tap area. Names sit inside the tiles. You can still fine-tune each setting below.")
+        }
+    }
+
+    private func styleCard(name: String, isOn: Bool, tiles: Bool, apply: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(.snappy) { apply() }
+        } label: {
+            VStack(spacing: 8) {
+                // A tiny drawing of the style.
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(18), spacing: tiles ? 0 : 6), count: 3), spacing: tiles ? 0 : 6) {
+                    ForEach(0..<6, id: \.self) { i in
+                        RoundedRectangle(cornerRadius: tiles ? 0 : 5, style: .continuous)
+                            .fill(Color(hex: ["#F472B6", "#818CF8", "#34D399", "#FBBF24", "#38BDF8", "#F97316"][i]))
+                            .frame(width: 18, height: 18)
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 56)
+                Text(name).font(.subheadline.weight(.semibold))
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.secondary.opacity(0.1)))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(isOn ? Color.accentColor : .clear, lineWidth: 2.5))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(name) style")
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
 
     private var presetsSection: some View {
         Section("Presets") {
@@ -114,9 +159,10 @@ struct ThemeView: View {
     private var iconsSection: some View {
         Section {
             VStack(alignment: .leading) {
-                Text("Size")
+                Text(store.state.theme.fillCells ? "Size (set by Fill each cell)" : "Size")
                 Slider(value: $store.state.theme.iconSize, in: 44...84)
             }
+            .disabled(store.state.theme.fillCells)
             VStack(alignment: .leading) {
                 HStack {
                     Text("Shape")
@@ -125,6 +171,17 @@ struct ThemeView: View {
                 }
                 Slider(value: $store.state.theme.cornerFactor, in: 0...0.5)
             }
+            VStack(alignment: .leading) {
+                HStack {
+                    Text("Spacing")
+                    Spacer()
+                    Text(store.state.theme.iconSpacing < 1 ? "None" : "\(Int(store.state.theme.iconSpacing)) pt")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                Slider(value: $store.state.theme.iconSpacing, in: 0...24, step: 1)
+            }
+            Toggle("Fill each cell", isOn: $store.state.theme.fillCells)
             Stepper("Columns: \(store.state.theme.columns)", value: $store.state.theme.columns, in: 3...6)
             Toggle("Matching icon colors", isOn: $store.state.theme.uniformIconColors)
             if store.state.theme.uniformIconColors {
@@ -141,6 +198,9 @@ struct ThemeView: View {
     private var textSection: some View {
         Section("Text") {
             Toggle("Show app names", isOn: $store.state.theme.showLabels)
+            if store.state.theme.showLabels {
+                Toggle("Names inside icons", isOn: $store.state.theme.labelsInside)
+            }
             ColorPicker("Text color", selection: hexBinding(\.labelColorHex))
             Picker("Font", selection: $store.state.theme.fontStyle) {
                 ForEach(FontStyle.allCases) { style in

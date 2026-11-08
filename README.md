@@ -50,6 +50,7 @@ You need a **Mac with Xcode 15 or later** (free on the Mac App Store) and an iPh
 | Arrange sections, rename/add/delete groups, hide automatic sections | **•••** › **Groups & Dock** |
 | Bring back the bottom dock | **•••** › **Groups & Dock** › **Show Dock**, then long-press apps › **Add to Dock** |
 | Change the look | **•••** › **Design** |
+| Edge-to-edge square tiles (no spacing, bigger tap areas) | **•••** › **Design** › Style › **Tiles**, or set the **Spacing** slider yourself |
 
 ### When an app won't open: use a Shortcut
 

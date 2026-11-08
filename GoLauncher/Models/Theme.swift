@@ -37,6 +37,12 @@ struct Theme: Codable, Hashable {
     /// 0 = square, 0.5 = circle.
     var cornerFactor: Double = 0.24
     var columns = 4
+    /// Gap between icons in points. 0 = tiles touch.
+    var iconSpacing: Double = 10
+    /// Icons stretch to fill their whole grid cell (bigger tap targets).
+    var fillCells = false
+    /// App names drawn inside the icon instead of underneath.
+    var labelsInside = false
     var showLabels = true
     var labelColorHex = "#FFFFFF"
     var fontStyle: FontStyle = .rounded
@@ -51,6 +57,38 @@ struct Theme: Codable, Hashable {
     var searchOnOpen = false
 
     var labelColor: Color { Color(hex: labelColorHex) }
+
+    /// Space between rows: a little extra when names sit under the icons.
+    var rowSpacing: Double {
+        showLabels && !labelsInside ? iconSpacing + 6 : iconSpacing
+    }
+
+    var isTiles: Bool {
+        iconSpacing == 0 && cornerFactor == 0 && fillCells && labelsInside && !showGroupCards
+    }
+
+    var isClassic: Bool {
+        iconSpacing == 10 && cornerFactor == 0.24 && !fillCells && !labelsInside && showGroupCards
+    }
+
+    /// Edge-to-edge square tiles: no gaps, square corners, each icon fills its cell, names inside.
+    mutating func applyTiles() {
+        iconSpacing = 0
+        cornerFactor = 0
+        fillCells = true
+        labelsInside = true
+        showLabels = true
+        showGroupCards = false
+    }
+
+    /// The standard iOS-like look.
+    mutating func applyClassic() {
+        iconSpacing = 10
+        cornerFactor = 0.24
+        fillCells = false
+        labelsInside = false
+        showGroupCards = true
+    }
 }
 
 struct ThemePreset: Identifiable {

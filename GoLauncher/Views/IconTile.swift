@@ -10,6 +10,9 @@ struct IconTile: View {
     var glyphHex: String = "#FFFFFF"
     var maxSize: CGFloat = 62
     var cornerFactor: CGFloat = 0.24
+    /// Glyph size as a share of the tile.
+    var glyphScale: CGFloat = 1
+    var showsShadow = true
 
     var body: some View {
         GeometryReader { geo in
@@ -22,8 +25,9 @@ struct IconTile: View {
             }
             .frame(width: side, height: side)
             .clipShape(shape)
-            .overlay(shape.strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.18), radius: side * 0.06, y: side * 0.03)
+            // A hairline keeps same-colored neighbors apart when tiles touch.
+            .overlay(shape.strokeBorder(showsShadow ? Color.white.opacity(0.08) : Color.black.opacity(0.18), lineWidth: 0.5))
+            .shadow(color: .black.opacity(showsShadow ? 0.18 : 0), radius: side * 0.06, y: side * 0.03)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .aspectRatio(1, contentMode: .fit)
@@ -48,11 +52,11 @@ struct IconTile: View {
         switch glyph {
         case .symbol(let name):
             Image(systemName: name)
-                .font(.system(size: side * 0.46, weight: .semibold))
+                .font(.system(size: side * 0.46 * glyphScale, weight: .semibold))
                 .foregroundStyle(Color(hex: glyphHex))
         case .emoji(let emoji):
             Text(emoji)
-                .font(.system(size: side * 0.56))
+                .font(.system(size: side * 0.56 * glyphScale))
         case .image(let name):
             if let uiImage = store.image(named: name) {
                 Image(uiImage: uiImage)
@@ -74,6 +78,8 @@ struct AppIconView: View {
     let theme: Theme
     var showLabel = true
 
+    private var nameInside: Bool { showLabel && theme.showLabels && theme.labelsInside }
+
     var body: some View {
         VStack(spacing: 6) {
             IconTile(
@@ -81,10 +87,24 @@ struct AppIconView: View {
                 backgroundHex: theme.uniformIconColors ? theme.uniformIconHex : app.colorHex,
                 secondaryHex: theme.uniformIconColors ? nil : app.secondaryColorHex,
                 glyphHex: theme.uniformIconColors ? theme.uniformGlyphHex : app.glyphColorHex,
-                maxSize: theme.iconSize,
-                cornerFactor: theme.cornerFactor
+                maxSize: theme.fillCells ? .infinity : theme.iconSize,
+                cornerFactor: theme.cornerFactor,
+                glyphScale: nameInside ? 0.8 : 1,
+                showsShadow: theme.iconSpacing > 2
             )
-            if showLabel && theme.showLabels {
+            .overlay(alignment: .bottomLeading) {
+                if nameInside {
+                    // Name inside the tile, like a label on a card.
+                    Text(app.name)
+                        .font(.system(size: 11, weight: .semibold, design: theme.fontStyle.design))
+                        .foregroundStyle(Color(hex: theme.uniformIconColors ? theme.uniformGlyphHex : app.glyphColorHex))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .padding(.horizontal, 7)
+                        .padding(.bottom, 6)
+                }
+            }
+            if showLabel && theme.showLabels && !theme.labelsInside {
                 Text(app.name)
                     .font(.system(size: 12, weight: .medium, design: theme.fontStyle.design))
                     .foregroundStyle(theme.labelColor)

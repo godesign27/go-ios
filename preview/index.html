@@ -128,7 +128,22 @@ body {
 .ghead .chev { margin-left: auto; width: 14px; height: 14px; opacity: .6; transition: transform .2s; }
 .ghead.collapsed .chev { transform: rotate(-90deg); }
 .ghead.drop-over { opacity: .6; }
-.grid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 16px 10px; margin-top: 12px; }
+.grid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: var(--row-gap) var(--gap); margin-top: 12px; }
+.fill .grid .tile, .fill .grid .addtile .tile { width: 100%; }
+.noshadow .grid .tile { box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .18); }
+.flush .group { padding-left: 0; padding-right: 0; }
+.flush .ghead { padding: 0 4px; }
+.tile .inlabel { position: absolute; left: 7%; right: 7%; bottom: 7%; font: 700 11px/1.1 var(--app-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.tile.has-inlabel svg { width: 37%; height: 37%; margin-bottom: 10%; }
+.tile.has-inlabel .emoji { font-size: 44cqw; margin-bottom: 10%; }
+.style-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+.style-card { border: 2.5px solid transparent; border-radius: 14px; background: rgba(120, 120, 128, .12); padding: 12px 10px 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--row-fg); font: 600 14px var(--body); }
+.style-card.on { border-color: var(--tint); }
+.style-card .mini-grid { display: grid; grid-template-columns: repeat(3, 18px); gap: 6px; }
+.style-card .mini-grid i { width: 18px; height: 18px; border-radius: 5px; display: block; }
+.style-card.tiles .mini-grid { gap: 0; }
+.style-card.tiles .mini-grid i { border-radius: 0; }
+.row.disabled { opacity: .45; pointer-events: none; }
 .empty { font-size: 13px; opacity: .6; text-align: center; padding: 12px 0 4px; }
 
 .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: none; padding: 0; cursor: pointer; color: var(--label); position: relative; min-width: 0; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
@@ -342,7 +357,11 @@ body {
     serif: ['Serif', '"Newsreader", "New York", Georgia, serif'],
     mono: ['Mono', '"JetBrains Mono", ui-monospace, Menlo, monospace'],
   };
-  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true };
+  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true, iconSpacing: 10, fillCells: false, labelsInside: false };
+  const TILES = { iconSpacing: 0, cornerFactor: 0, fillCells: true, labelsInside: true, showLabels: true, showGroupCards: false };
+  const CLASSIC = { iconSpacing: 10, cornerFactor: .24, fillCells: false, labelsInside: false, showGroupCards: true };
+  const matches = (t, p) => Object.keys(p).every(k => t[k] === p[k]);
+  const isTiles = t => matches(t, TILES), isClassic = t => matches(t, CLASSIC);
   const PRESETS = [
     ["Midnight", { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, labelColorHex: "#FFFFFF", uniformIconColors: false, fontStyle: "rounded", cornerFactor: .24 }],
     ["Sunset", { backgroundTopHex: "#F97316", backgroundBottomHex: "#BE185D", isDark: true, labelColorHex: "#FFFFFF", uniformIconColors: true, uniformIconHex: "#FFFFFF40", uniformGlyphHex: "#FFFFFF", fontStyle: "rounded", cornerFactor: .5 }],
@@ -374,6 +393,7 @@ body {
   let state;
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
   if (!state || !state.apps || !state.groups || !state.theme) state = seed();
+  state.theme = { ...DEFAULT_THEME, ...state.theme };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
 
   let editing = false;
@@ -420,17 +440,20 @@ body {
     }).filter(x => x[1] > 0).sort((x, y) => y[1] - x[1] || y[0].launchCount - x[0].launchCount).map(x => x[0]);
   }
 
-  function tileHTML(glyph, bg, bg2, fg, extraClass = "") {
+  function tileHTML(glyph, bg, bg2, fg, extraClass = "", inLabel = null) {
     const background = bg2 ? `linear-gradient(135deg, ${bg}, ${bg2})` : bg;
     let inner;
     if (glyph.kind === "emoji") inner = `<span class="emoji">${esc(glyph.value)}</span>`;
     else inner = `<i data-lucide="${esc(glyph.value)}"></i>`;
-    return `<span class="tile ${extraClass}" style="background:${background};color:${fg}">${inner}</span>`;
+    if (inLabel) inner += `<span class="inlabel">${esc(inLabel)}</span>`;
+    return `<span class="tile ${extraClass}${inLabel ? " has-inlabel" : ""}" style="background:${background};color:${fg}">${inner}</span>`;
   }
-  function appTile(a) {
-    const t = state.theme;
-    return t.uniformIconColors ? tileHTML(a.glyph, t.uniformIconHex, null, t.uniformGlyphHex) : tileHTML(a.glyph, a.colorHex, a.secondaryColorHex, a.glyphColorHex);
+  // withName: put the name inside the tile when "Names inside icons" is on.
+  function appTile(a, withName = false) {
+    const t = state.theme, name = withName && t.showLabels && t.labelsInside ? a.name : null;
+    return t.uniformIconColors ? tileHTML(a.glyph, t.uniformIconHex, null, t.uniformGlyphHex, "", name) : tileHTML(a.glyph, a.colorHex, a.secondaryColorHex, a.glyphColorHex, "", name);
   }
+  const underLabel = a => state.theme.showLabels && !state.theme.labelsInside ? `<span class="label">${esc(a.name)}</span>` : "";
   function icons(root) { if (window.lucide) lucide.createIcons({ attrs: { "stroke-width": 2.2 } }); }
 
   // ---------- Theme ----------
@@ -439,6 +462,9 @@ body {
     s.setProperty("--bg-top", t.backgroundTopHex); s.setProperty("--bg-bottom", t.backgroundBottomHex);
     s.setProperty("--label", t.labelColorHex); s.setProperty("--app-font", FONTS[t.fontStyle][1]);
     s.setProperty("--icon", t.iconSize + "px"); s.setProperty("--corner", t.cornerFactor); s.setProperty("--cols", t.columns);
+    s.setProperty("--gap", t.iconSpacing + "px"); s.setProperty("--row-gap", (t.showLabels && !t.labelsInside ? t.iconSpacing + 6 : t.iconSpacing) + "px");
+    screen.classList.toggle("fill", !!t.fillCells); screen.classList.toggle("noshadow", t.iconSpacing <= 2);
+    screen.classList.toggle("flush", t.iconSpacing < 1 && !t.showGroupCards);
     s.setProperty("--material", t.isDark ? "rgba(255,255,255,.13)" : "rgba(255,255,255,.5)");
     s.setProperty("--label-shadow", t.isDark ? "0 1px 2px rgba(0,0,0,.35)" : "none");
     s.setProperty("--search-tint", t.isDark ? "rgba(10,10,20,.35)" : "rgba(255,255,255,.4)");
@@ -455,7 +481,7 @@ body {
   function cellHTML(a, inEdit, still = false) {
     return `<button class="cell${still ? " still" : ""}" type="button" data-act="app" data-id="${a.id}" ${inEdit ? 'draggable="true"' : ""} aria-label="${esc(a.name)}">
       ${inEdit ? `<span class="minus" data-act="minus" data-id="${a.id}" role="button" aria-label="Remove ${esc(a.name)}">–</span>` : ""}
-      ${appTile(a)}${state.theme.showLabels ? `<span class="label">${esc(a.name)}</span>` : ""}</button>`;
+      ${appTile(a, true)}${underLabel(a)}</button>`;
   }
   function renderContent() {
     const t = state.theme;
@@ -498,7 +524,7 @@ body {
   function closeSearch() { query = ""; qInput.value = ""; qInput.blur(); $("searchView").hidden = true; }
   function renderSearch() {
     const t = state.theme, body = $("svBody"), q = query.trim();
-    const grid = apps => `<div class="grid" style="margin-top:8px">${apps.map(a => `<button class="cell still" type="button" data-act="search-launch" data-id="${a.id}" aria-label="${esc(a.name)}">${appTile(a)}${t.showLabels ? `<span class="label">${esc(a.name)}</span>` : ""}</button>`).join("")}</div>`;
+    const grid = apps => `<div class="grid" style="margin-top:8px">${apps.map(a => `<button class="cell still" type="button" data-act="search-launch" data-id="${a.id}" aria-label="${esc(a.name)}">${appTile(a, true)}${underLabel(a)}</button>`).join("")}</div>`;
     if (!q) {
       const rs = state.recentSearches || [], sugg = recentApps(t.columns);
       body.innerHTML = `<div class="sv-title">Recent Searches${rs.length ? `<button type="button" data-act="recent-clear">Clear</button>` : ""}</div>`
@@ -692,6 +718,10 @@ body {
     overlay.innerHTML = `<div class="scrim clear" data-act="close"></div><div class="sheet half" role="dialog" aria-label="Design"><div class="grabber"></div>
       <div class="navbar"><span class="l"></span><h2>Design</h2><span class="r"><button class="link bold" data-act="close" type="button">Done</button></span></div>
       <div class="form">
+        <div class="sec-title">Style</div><div class="box"><div class="row col"><div class="style-cards">
+          ${[["Classic", isClassic(t), ""], ["Tiles", isTiles(t), "tiles"]].map(([n, on, cls]) => `<button class="style-card ${cls} ${on ? "on" : ""}" type="button" data-act="style" data-v="${n}"><span class="mini-grid">${["#F472B6", "#818CF8", "#34D399", "#FBBF24", "#38BDF8", "#F97316"].map(c => `<i style="background:${c}"></i>`).join("")}</span>${n}</button>`).join("")}
+        </div></div></div>
+        <div class="sec-foot">Tiles: no spacing, square edges, and every app fills its whole cell for a bigger tap area. Names sit inside the tiles. You can still fine-tune each setting below.</div>
         <div class="sec-title">Presets</div><div class="box"><div class="row col"><div class="presets">
           ${PRESETS.map(([n, p]) => { const pt = { ...DEFAULT_THEME, ...p }; const cols = ["#F472B6", "#818CF8", "#34D399", "#FBBF24"];
             return `<button class="preset ${presetOn(n) ? "on" : ""}" type="button" data-act="preset" data-v="${n}"><span class="sw" style="background:linear-gradient(${pt.backgroundTopHex},${pt.backgroundBottomHex})">${cols.map(c => `<i style="background:${pt.uniformIconColors ? pt.uniformIconHex : c};border-radius:${pt.cornerFactor * 16}px"></i>`).join("")}</span><span style="font-family:${FONTS[pt.fontStyle][1]}">${n}</span></button>`; }).join("")}
@@ -702,8 +732,10 @@ body {
           <div class="row"><button class="rowbtn" data-act="ed-photo" type="button"><i data-lucide="image"></i>Choose Wallpaper Photo</button></div>
           <div class="row"><span>Dark style</span><label class="switch"><input type="checkbox" data-theme-bool="isDark" ${t.isDark ? "checked" : ""}><span></span></label></div></div>
         <div class="sec-title">Icons</div><div class="box">
-          <div class="row col"><span>Size</span><input type="range" min="44" max="84" step="1" data-theme-num="iconSize" value="${t.iconSize}" aria-label="Icon size"></div>
+          <div class="row col ${t.fillCells ? "disabled" : ""}"><span>${t.fillCells ? "Size (set by Fill each cell)" : "Size"}</span><input type="range" min="44" max="84" step="1" data-theme-num="iconSize" value="${t.iconSize}" aria-label="Icon size"></div>
           <div class="row col"><span style="display:flex;justify-content:space-between">Shape <span class="val" id="shapeName">${shape}</span></span><input type="range" min="0" max="0.5" step="0.01" data-theme-num="cornerFactor" value="${t.cornerFactor}" aria-label="Icon shape"></div>
+          <div class="row col"><span style="display:flex;justify-content:space-between">Spacing <span class="val" id="gapVal">${t.iconSpacing < 1 ? "None" : t.iconSpacing + " pt"}</span></span><input type="range" min="0" max="24" step="1" data-theme-num="iconSpacing" value="${t.iconSpacing}" aria-label="Spacing between apps"></div>
+          <div class="row"><span>Fill each cell</span><label class="switch"><input type="checkbox" data-theme-bool="fillCells" data-rerender="1" ${t.fillCells ? "checked" : ""}><span></span></label></div>
           <div class="row"><span>Columns: <b id="colN">${t.columns}</b></span><span class="stepper"><button type="button" data-act="cols" data-v="-1" aria-label="Fewer columns">−</button><button type="button" data-act="cols" data-v="1" aria-label="More columns">+</button></span></div>
           <div class="row"><span>Matching icon colors</span><label class="switch"><input type="checkbox" data-theme-bool="uniformIconColors" data-rerender="1" ${t.uniformIconColors ? "checked" : ""}><span></span></label></div>
           ${t.uniformIconColors ? `<div class="row"><span>Icon background</span><input type="color" data-theme-color="uniformIconHex" data-keep-alpha="1" value="${t.uniformIconHex.slice(0, 7)}"></div>
@@ -711,7 +743,8 @@ body {
             <div class="row"><span>Icon symbol</span><input type="color" data-theme-color="uniformGlyphHex" value="${t.uniformGlyphHex.slice(0, 7)}"></div>` : ""}</div>
         <div class="sec-foot">Matching colors gives every icon the same look. Each icon keeps its own colors for when you turn it off.</div>
         <div class="sec-title">Text</div><div class="box">
-          <div class="row"><span>Show app names</span><label class="switch"><input type="checkbox" data-theme-bool="showLabels" ${t.showLabels ? "checked" : ""}><span></span></label></div>
+          <div class="row"><span>Show app names</span><label class="switch"><input type="checkbox" data-theme-bool="showLabels" data-rerender="1" ${t.showLabels ? "checked" : ""}><span></span></label></div>
+          ${t.showLabels ? `<div class="row"><span>Names inside icons</span><label class="switch"><input type="checkbox" data-theme-bool="labelsInside" data-rerender="1" ${t.labelsInside ? "checked" : ""}><span></span></label></div>` : ""}
           <div class="row"><span>Text color</span><input type="color" data-theme-color="labelColorHex" value="${t.labelColorHex.slice(0, 7)}"></div>
           <div class="row"><span>Font</span><select id="fontSel" aria-label="Font">${Object.entries(FONTS).map(([k, v]) => `<option value="${k}" ${k === t.fontStyle ? "selected" : ""}>${v[0]}</option>`).join("")}</select></div></div>
         <div class="sec-title">Layout & behavior</div><div class="box">
@@ -819,6 +852,7 @@ body {
       case "g-del": { if (state.groups.length < 2) return; const rest = state.groups.filter(g => g.id !== gid); state.apps.forEach(a => { if (a.groupID === gid) a.groupID = rest[0].id; }); state.groups = rest; state.sectionOrder = (state.sectionOrder || []).filter(k => k !== gid); render(); renderGroups(); break; }
       // design
       case "preset": Object.assign(state.theme, PRESETS.find(p => p[0] === v)[1]); render(); renderDesign(); break;
+      case "style": Object.assign(state.theme, v === "Tiles" ? TILES : CLASSIC); render(); renderDesign(); break;
       case "cols": state.theme.columns = Math.min(6, Math.max(3, state.theme.columns + Number(v))); $("colN").textContent = state.theme.columns; render(); break;
       case "reset": state = seed(); editing = false; closeOverlay(); render(); toast("Reset to the starter layout"); break;
     }
@@ -843,6 +877,7 @@ body {
     if (el.dataset.themeColor) { const k = el.dataset.themeColor; t[k] = el.value.toUpperCase() + (el.dataset.keepAlpha && t[k].length === 9 ? t[k].slice(7) : ""); render(); }
     if (el.dataset.themeNum) {
       t[el.dataset.themeNum] = Number(el.value); render();
+      if (el.dataset.themeNum === "iconSpacing") $("gapVal").textContent = t.iconSpacing < 1 ? "None" : t.iconSpacing + " pt";
       if (el.dataset.themeNum === "cornerFactor") { const c = t.cornerFactor; $("shapeName").textContent = c < .06 ? "Square" : c < .33 ? "Rounded" : c < .46 ? "Squircle" : "Circle"; }
     }
     if (el.id === "uniAlpha") { t.uniformIconHex = t.uniformIconHex.slice(0, 7) + Math.round(Number(el.value) * 255).toString(16).padStart(2, "0").toUpperCase(); render(); }

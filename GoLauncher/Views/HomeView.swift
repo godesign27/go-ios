@@ -14,7 +14,7 @@ struct HomeView: View {
     private var theme: Theme { store.state.theme }
 
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: max(theme.columns, 1))
+        Array(repeating: GridItem(.flexible(), spacing: theme.iconSpacing, alignment: .top), count: max(theme.columns, 1))
     }
 
     private var showsDock: Bool { store.state.showDock && !store.dockApps.isEmpty }
@@ -208,7 +208,7 @@ struct HomeView: View {
 
     private func sectionCard<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12, content: content)
-            .padding(theme.showGroupCards ? 14 : 4)
+            .padding(theme.showGroupCards ? 14 : (theme.iconSpacing < 1 ? 0 : 4))
             .background {
                 if theme.showGroupCards {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -240,7 +240,7 @@ struct HomeView: View {
                         .foregroundStyle(theme.labelColor.opacity(0.6))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    LazyVGrid(columns: columns, spacing: 16) {
+                    LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
                         ForEach(apps) { app in
                             Button {
                                 if isEditing { activeSheet = .edit(app) } else { launch(app) }
@@ -267,7 +267,7 @@ struct HomeView: View {
             }
 
             if !group.isCollapsed {
-                LazyVGrid(columns: columns, spacing: 16) {
+                LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
                     ForEach(apps) { app in
                         iconCell(app)
                     }
@@ -334,7 +334,7 @@ struct HomeView: View {
                     .strokeBorder(theme.labelColor.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                     .overlay(Image(systemName: "plus").font(.system(size: 20, weight: .semibold)))
                     .aspectRatio(1, contentMode: .fit)
-                    .frame(maxWidth: theme.iconSize)
+                    .frame(maxWidth: theme.fillCells ? .infinity : theme.iconSize)
                 if theme.showLabels {
                     Text("Add")
                         .font(.system(size: 12, weight: .medium, design: theme.fontStyle.design))
@@ -486,7 +486,7 @@ struct SearchOverlay: View {
     @FocusState private var focused: Bool
 
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: max(theme.columns, 1))
+        Array(repeating: GridItem(.flexible(), spacing: theme.iconSpacing, alignment: .top), count: max(theme.columns, 1))
     }
 
     var body: some View {
@@ -598,7 +598,7 @@ struct SearchOverlay: View {
         if !recentApps.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Suggestions").font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
-                LazyVGrid(columns: columns, spacing: 16) {
+                LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
                     ForEach(recentApps) { app in
                         Button { onLaunch(app, "") } label: { AppIconView(app: app, theme: theme) }
                             .buttonStyle(.plain)
@@ -617,7 +617,7 @@ struct SearchOverlay: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 8)
         } else {
-            LazyVGrid(columns: columns, spacing: 16) {
+            LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
                 ForEach(matches) { app in
                     Button { onLaunch(app, query) } label: { AppIconView(app: app, theme: theme) }
                         .buttonStyle(.plain)
