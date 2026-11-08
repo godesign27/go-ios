@@ -47,6 +47,14 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// What cards and widgets are made of.
+enum CardMaterial: String, Codable {
+    /// Classic: Liquid Glass tinted with the background's hue.
+    case tone
+    /// Glass: light atmospheric frost that lets the wallpaper show through.
+    case frosted
+}
+
 /// How each section shows its apps.
 enum SectionLayout: String, Codable, CaseIterable, Identifiable {
     /// One row (two for Recently Used) you swipe left for more, plus View All.
@@ -59,11 +67,15 @@ enum SectionLayout: String, Codable, CaseIterable, Identifiable {
 }
 
 struct Theme: Codable, Hashable {
-    // Background
-    var backgroundTopHex = "#312E81"
-    var backgroundBottomHex = "#0F172A"
+    // Background (default: the Twilight wallpaper). The gradient colors match the
+    // wallpaper; they tint cards when Reduce Transparency is on and show behind it while it loads.
+    var backgroundTopHex = "#0B1652"
+    var backgroundBottomHex = "#3A2D9C"
+    /// Your own photo. Shown instead of `bundledWallpaper` when set.
     var wallpaperFilename: String? = nil
-    var wallpaperDim: Double = 0.2
+    /// One of Go's built-in wallpapers (an asset catalog image name).
+    var bundledWallpaper: String? = "WallpaperTwilight"
+    var wallpaperDim: Double = 0
     var isDark = true
 
     // Icons
@@ -81,8 +93,9 @@ struct Theme: Codable, Hashable {
     var labelColorHex = "#FFFFFF"
     var fontStyle: FontStyle = .rounded
     /// When on, every icon uses the same colors below (great for minimal/aesthetic looks).
-    var uniformIconColors = false
-    var uniformIconHex = "#FFFFFF33"
+    /// A see-through color (#RRGGBBAA) makes frosted glass tiles.
+    var uniformIconColors = true
+    var uniformIconHex = "#FFFFFF2E"
     var uniformGlyphHex = "#FFFFFF"
 
     // Widgets (two side by side above everything else)
@@ -93,6 +106,7 @@ struct Theme: Codable, Hashable {
     // Layout & behavior
     var sectionLayout: SectionLayout = .rows
     var showGroupCards = true
+    var cardMaterial: CardMaterial = .frosted
     var showClock = true
     var searchOnOpen = false
     /// Use each app's official App Store icon where one exists.
@@ -101,6 +115,13 @@ struct Theme: Codable, Hashable {
     var userName = ""
 
     var labelColor: Color { Color(hex: labelColorHex) }
+
+    /// Uniform icons in a see-through color render as frosted glass tiles.
+    var usesGlassIcons: Bool {
+        guard uniformIconColors else { return false }
+        let hex = uniformIconHex.hasPrefix("#") ? String(uniformIconHex.dropFirst()) : uniformIconHex
+        return hex.count == 8 && !hex.uppercased().hasSuffix("FF")
+    }
 
     /// The background's own hue (midpoint of the gradient), used to tint cards and widgets
     /// so they read as a lighter layer of the same color: tone on tone.
@@ -140,8 +161,17 @@ struct Theme: Codable, Hashable {
         iconSpacing == 0 && cornerFactor == 0 && fillCells && labelsInside && !showGroupCards
     }
 
-    var isClassic: Bool {
+    /// Standard spacing and rounded icons with names underneath, on cards.
+    private var hasCardLayout: Bool {
         iconSpacing == 6 && cornerFactor == 0.24 && !fillCells && !labelsInside && showGroupCards
+    }
+
+    var isClassic: Bool {
+        hasCardLayout && cardMaterial == .tone && !usesGlassIcons
+    }
+
+    var isGlass: Bool {
+        hasCardLayout && cardMaterial == .frosted && usesGlassIcons
     }
 
     /// Edge-to-edge square tiles: no gaps, square corners, each icon fills its cell, names inside.
@@ -154,13 +184,28 @@ struct Theme: Codable, Hashable {
         showGroupCards = false
     }
 
-    /// The standard iOS-like look.
-    mutating func applyClassic() {
+    private mutating func applyCardLayout() {
         iconSpacing = 6
         cornerFactor = 0.24
         fillCells = false
         labelsInside = false
         showGroupCards = true
+    }
+
+    /// The standard iOS-like look: colored icons on tinted cards.
+    mutating func applyClassic() {
+        applyCardLayout()
+        cardMaterial = .tone
+        uniformIconColors = false
+    }
+
+    /// Frosted cards and glass icon tiles with white glyphs, over the wallpaper.
+    mutating func applyGlass() {
+        applyCardLayout()
+        cardMaterial = .frosted
+        uniformIconColors = true
+        uniformIconHex = "#FFFFFF2E"
+        uniformGlyphHex = "#FFFFFF"
     }
 }
 
@@ -176,36 +221,59 @@ struct ThemePreset: Identifiable {
         return theme
     }
 
+    /// A built-in wallpaper with frosted glass icons and white text.
+    /// `dim` darkens the lighter wallpapers a little so white text stays readable.
+    private static func wallpaper(_ name: String, top: String, bottom: String, dim: Double) -> ThemePreset {
+        ThemePreset(name: name) { t in
+            t.bundledWallpaper = "Wallpaper\(name)"; t.wallpaperFilename = nil; t.wallpaperDim = dim
+            t.backgroundTopHex = top; t.backgroundBottomHex = bottom
+            t.isDark = true; t.labelColorHex = "#FFFFFF"
+            t.fontStyle = .rounded
+            t.applyGlass()
+        }
+    }
+
     static let all: [ThemePreset] = [
+        wallpaper("Twilight", top: "#0B1652", bottom: "#3A2D9C", dim: 0),
+        wallpaper("Dusk", top: "#8E7FE0", bottom: "#3F63D6", dim: 0.12),
+        wallpaper("Haze", top: "#9AA6EE", bottom: "#4C6BC4", dim: 0.25),
+        wallpaper("Daybreak", top: "#D6BFE6", bottom: "#5B78D8", dim: 0.28),
+        wallpaper("Blush", top: "#E3A9C0", bottom: "#A27DBF", dim: 0.3),
         ThemePreset(name: "Midnight") { t in
+            t.bundledWallpaper = nil
             t.backgroundTopHex = "#312E81"; t.backgroundBottomHex = "#0F172A"
             t.isDark = true; t.labelColorHex = "#FFFFFF"
             t.uniformIconColors = false; t.fontStyle = .rounded; t.cornerFactor = 0.24
         },
         ThemePreset(name: "Sunset") { t in
+            t.bundledWallpaper = nil
             t.backgroundTopHex = "#F97316"; t.backgroundBottomHex = "#BE185D"
             t.isDark = true; t.labelColorHex = "#FFFFFF"
             t.uniformIconColors = true; t.uniformIconHex = "#FFFFFF40"; t.uniformGlyphHex = "#FFFFFF"
             t.fontStyle = .rounded; t.cornerFactor = 0.5
         },
         ThemePreset(name: "Ocean") { t in
+            t.bundledWallpaper = nil
             t.backgroundTopHex = "#0EA5E9"; t.backgroundBottomHex = "#1E3A8A"
             t.isDark = true; t.labelColorHex = "#FFFFFF"
             t.uniformIconColors = false; t.fontStyle = .standard; t.cornerFactor = 0.24
         },
         ThemePreset(name: "Mint") { t in
+            t.bundledWallpaper = nil
             t.backgroundTopHex = "#ECFDF5"; t.backgroundBottomHex = "#A7F3D0"
             t.isDark = false; t.labelColorHex = "#064E3B"
             t.uniformIconColors = true; t.uniformIconHex = "#FFFFFF"; t.uniformGlyphHex = "#047857"
             t.fontStyle = .rounded; t.cornerFactor = 0.3
         },
         ThemePreset(name: "Paper") { t in
+            t.bundledWallpaper = nil
             t.backgroundTopHex = "#F5F0E6"; t.backgroundBottomHex = "#E7DCC8"
             t.isDark = false; t.labelColorHex = "#3B3024"
             t.uniformIconColors = true; t.uniformIconHex = "#FFFDF8"; t.uniformGlyphHex = "#3B3024"
             t.fontStyle = .serif; t.cornerFactor = 0.18
         },
         ThemePreset(name: "Mono") { t in
+            t.bundledWallpaper = nil
             t.backgroundTopHex = "#111111"; t.backgroundBottomHex = "#000000"
             t.isDark = true; t.labelColorHex = "#E5E5E5"
             t.uniformIconColors = true; t.uniformIconHex = "#1F1F1F"; t.uniformGlyphHex = "#FFFFFF"
@@ -226,6 +294,8 @@ extension Theme {
         backgroundTopHex = value(.backgroundTopHex, d.backgroundTopHex)
         backgroundBottomHex = value(.backgroundBottomHex, d.backgroundBottomHex)
         wallpaperFilename = (try? c.decodeIfPresent(String.self, forKey: .wallpaperFilename)) ?? nil
+        // Layouts saved before built-in wallpapers keep their gradient (no Twilight default).
+        bundledWallpaper = (try? c.decodeIfPresent(String.self, forKey: .bundledWallpaper)) ?? nil
         wallpaperDim = value(.wallpaperDim, d.wallpaperDim)
         isDark = value(.isDark, d.isDark)
         iconSize = value(.iconSize, d.iconSize)
@@ -245,6 +315,8 @@ extension Theme {
         rightWidget = value(.rightWidget, d.rightWidget)
         sectionLayout = value(.sectionLayout, d.sectionLayout)
         showGroupCards = value(.showGroupCards, d.showGroupCards)
+        // Layouts saved before the Glass style keep the Classic cards they had.
+        cardMaterial = value(.cardMaterial, CardMaterial.tone)
         showClock = value(.showClock, d.showClock)
         searchOnOpen = value(.searchOnOpen, d.searchOnOpen)
         useOfficialIcons = value(.useOfficialIcons, d.useOfficialIcons)

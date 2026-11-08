@@ -54,6 +54,9 @@ struct ThemeView: View {
                 styleCard(name: "Classic", isOn: store.state.theme.isClassic, tiles: false) {
                     store.state.theme.applyClassic()
                 }
+                styleCard(name: "Glass", isOn: store.state.theme.isGlass, tiles: false, glass: true) {
+                    store.state.theme.applyGlass()
+                }
                 styleCard(name: "Tiles", isOn: store.state.theme.isTiles, tiles: true) {
                     store.state.theme.applyTiles()
                 }
@@ -62,11 +65,11 @@ struct ThemeView: View {
         } header: {
             Text("Style")
         } footer: {
-            Text("Tiles: no spacing, square edges, and every app fills its whole cell for a bigger tap area. Names sit inside the tiles. You can still fine-tune each setting below.")
+            Text("Classic: colored icons on tinted cards. Glass: frosted cards and see-through icons that let the wallpaper show. Tiles: no spacing, square edges, and every app fills its whole cell for a bigger tap area. Names sit inside the tiles. You can still fine-tune each setting below.")
         }
     }
 
-    private func styleCard(name: String, isOn: Bool, tiles: Bool, apply: @escaping () -> Void) -> some View {
+    private func styleCard(name: String, isOn: Bool, tiles: Bool, glass: Bool = false, apply: @escaping () -> Void) -> some View {
         Button {
             withAnimation(.snappy) { apply() }
         } label: {
@@ -75,11 +78,18 @@ struct ThemeView: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(18), spacing: tiles ? 0 : 6), count: 3), spacing: tiles ? 0 : 6) {
                     ForEach(0..<6, id: \.self) { i in
                         RoundedRectangle(cornerRadius: tiles ? 0 : 5, style: .continuous)
-                            .fill(Color(hex: ["#F472B6", "#818CF8", "#34D399", "#FBBF24", "#38BDF8", "#F97316"][i]))
+                            .fill(glass ? Color.white.opacity(0.35) : Color(hex: ["#F472B6", "#818CF8", "#34D399", "#FBBF24", "#38BDF8", "#F97316"][i]))
+                            .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(.white.opacity(glass ? 0.6 : 0), lineWidth: 1))
                             .frame(width: 18, height: 18)
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: 56)
+                .background {
+                    if glass {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(LinearGradient(colors: [Color(hex: "#3A2D9C"), Color(hex: "#C08AD8")], startPoint: .top, endPoint: .bottom))
+                    }
+                }
                 Text(name).font(.subheadline.weight(.semibold))
             }
             .padding(10)
@@ -148,6 +158,12 @@ struct ThemeView: View {
                 ))
                 .frame(width: 64, height: 88)
                 .overlay {
+                    if let name = t.bundledWallpaper, let image = UIImage(named: name) {
+                        Image(uiImage: image).resizable().scaledToFill()
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
                     LazyVGrid(columns: [GridItem(.fixed(16)), GridItem(.fixed(16))], spacing: 6) {
                         ForEach(0..<4, id: \.self) { i in
                             RoundedRectangle(cornerRadius: 16 * t.cornerFactor, style: .continuous)
@@ -172,13 +188,14 @@ struct ThemeView: View {
                 Label(store.state.theme.wallpaperFilename == nil ? "Choose Wallpaper Photo" : "Change Wallpaper Photo",
                       systemImage: "photo")
             }
-            if store.state.theme.wallpaperFilename != nil {
+            if store.state.theme.wallpaperFilename != nil || store.state.theme.bundledWallpaper != nil {
                 VStack(alignment: .leading) {
                     Text("Dim wallpaper")
                     Slider(value: $store.state.theme.wallpaperDim, in: 0...0.7)
                 }
-                Button("Remove Wallpaper", role: .destructive) {
+                Button("Remove Wallpaper (use the colors above)", role: .destructive) {
                     store.state.theme.wallpaperFilename = nil
+                    store.state.theme.bundledWallpaper = nil
                 }
             }
             Toggle("Dark style", isOn: $store.state.theme.isDark)

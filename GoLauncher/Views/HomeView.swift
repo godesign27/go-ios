@@ -948,7 +948,7 @@ struct WallpaperView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            if let name = theme.wallpaperFilename, let image = store.image(named: name) {
+            if let image = wallpaperImage {
                 Color.clear
                     .overlay {
                         Image(uiImage: image)
@@ -960,6 +960,13 @@ struct WallpaperView: View {
             }
         }
         .ignoresSafeArea()
+    }
+
+    /// Your photo first, then Go's built-in wallpaper.
+    private var wallpaperImage: UIImage? {
+        if let name = theme.wallpaperFilename, let image = store.image(named: name) { return image }
+        if let name = theme.bundledWallpaper { return UIImage(named: name) }
+        return nil
     }
 }
 

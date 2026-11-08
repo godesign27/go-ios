@@ -1,8 +1,10 @@
 import SwiftUI
 
-// Liquid Glass (iOS 26) for Go's floating control layer: the search button, menu,
-// search bars, dock and widgets. Content (section cards, icons) stays out of glass,
-// per Apple's guidance. On iOS 17–25 the same spots fall back to a frosted material.
+// Two materials:
+// - Liquid Glass (iOS 26) for Go's floating control layer: the search button, menu, search
+//   bars and dock. On iOS 17–25 the same spots fall back to a frosted material.
+// - Atmospheric glass for content: section cards, widgets, glass icon tiles and the pill
+//   buttons inside them. Lighter than Liquid Glass, the same on every iOS version.
 
 // Liquid Glass needs the iOS 26 SDK (Xcode 26, Swift 6.2). Older Xcode builds use the fallback.
 #if compiler(>=6.2)
@@ -31,10 +33,24 @@ extension View {
         #endif
     }
 
-    /// Cards and widgets: glass tinted with the background's own hue (tone on tone), with a
-    /// faint light rim so neighbors sit together as one family. Frosted tone fill on older iOS.
+    /// Cards and widgets: atmospheric glass. A light frost that lets the wallpaper's colors
+    /// through, a hairline white rim, a faint highlight along the top edge and a very soft
+    /// shadow. Solid (tinted with the background's hue) when Reduce Transparency is on.
+    /// Cards and widgets in the theme's card material: Glass style (atmospheric) or Classic (tone).
     @ViewBuilder
     func cardSurface<S: InsettableShape>(in shape: S, theme: Theme) -> some View {
+        switch theme.cardMaterial {
+        case .frosted:
+            modifier(AtmosphericGlass(shape: shape, tone: Color(hex: theme.toneHex), style: .card))
+        case .tone:
+            toneSurface(in: shape, theme: theme)
+        }
+    }
+
+    /// Classic cards: Liquid Glass tinted with the background's own hue (tone on tone), with a
+    /// faint light rim so neighbors sit together as one family. Frosted tone fill on older iOS.
+    @ViewBuilder
+    private func toneSurface<S: InsettableShape>(in shape: S, theme: Theme) -> some View {
         let tone = Color(hex: theme.toneHex)
         let rim = Color.white.opacity(theme.isDark ? 0.10 : 0.35)
         #if compiler(>=6.2)
@@ -129,5 +145,100 @@ extension Color {
         // Contrast vs white is (1.05)/(L+0.05); vs near-black is (L+0.05)/0.05. Pick the higher.
         let l = luminance(ofHex: hex)
         return (l + 0.05) / 0.06 > 1.05 / (l + 0.05) ? Color(hex: "#1C1C1E") : Color(hex: "#FAFAFA")
+    }
+}
+
+// MARK: - Atmospheric glass
+
+enum GlassTokens {
+    /// White fill over the blur.
+    static let cardFill = 0.12
+    static let iconFill = 0.18
+    static let buttonFill = 0.20
+    static let buttonPressedFill = 0.30
+    /// Hairline rim.
+    static let cardBorder = 0.35
+    static let iconBorder = 0.30
+    /// Highlight along the top edge, fading out by the middle.
+    static let topHighlight = 0.25
+    /// How much of the light frost shows (1 = full system ultra-thin material).
+    static let frost = 0.4
+    static let shadow = Color(red: 20 / 255, green: 20 / 255, blue: 60 / 255).opacity(0.08)
+}
+
+struct AtmosphericGlass<S: InsettableShape>: ViewModifier {
+    enum Style { case card, icon, button(pressed: Bool) }
+
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let shape: S
+    /// Background hue, used for the solid Reduce Transparency fill.
+    let tone: Color
+    var style: Style = .card
+
+    private var fill: Double {
+        switch style {
+        case .card: return GlassTokens.cardFill
+        case .icon: return GlassTokens.iconFill
+        case .button(let pressed): return pressed ? GlassTokens.buttonPressedFill : GlassTokens.buttonFill
+        }
+    }
+
+    private var border: Double {
+        if case .icon = style { return GlassTokens.iconBorder }
+        return GlassTokens.cardBorder
+    }
+
+    func body(content: Content) -> some View {
+        content
+            // A soft shadow keeps white text readable over the lighter wallpapers.
+            .shadow(color: .black.opacity(isCard && !reduceTransparency ? 0.22 : 0), radius: 2, y: 1)
+            .background {
+                ZStack {
+                    if reduceTransparency {
+                        shape.fill(tone)
+                    } else {
+                        // Light frost regardless of dark/light mode, so the wallpaper stays bright.
+                        shape.fill(.ultraThinMaterial)
+                            .environment(\.colorScheme, .light)
+                            .opacity(GlassTokens.frost)
+                    }
+                    shape.fill(Color.white.opacity(fill))
+                }
+                .shadow(color: isCard ? GlassTokens.shadow : .clear, radius: 12, y: 8)
+            }
+            .overlay {
+                ZStack {
+                    shape.strokeBorder(Color.white.opacity(border), lineWidth: 1)
+                    shape.inset(by: 1).strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(GlassTokens.topHighlight), .clear],
+                            startPoint: .top, endPoint: .center
+                        ),
+                        lineWidth: 1
+                    )
+                }
+                .allowsHitTesting(false)
+            }
+    }
+
+    private var isCard: Bool {
+        if case .card = style { return true }
+        return false
+    }
+}
+
+/// Frosted pill button for use on glass cards: a little more opaque than its card, a thin
+/// rim, and a brighter fill while pressed. No drop shadow.
+struct GlassPillButtonStyle: ButtonStyle {
+    var tone: Color = .clear
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .foregroundStyle(.white)
+            .modifier(AtmosphericGlass(shape: Capsule(), tone: tone, style: .button(pressed: configuration.isPressed)))
+            .contentShape(Capsule())
+            .animation(.easeOut(duration: 0.18), value: configuration.isPressed)
     }
 }

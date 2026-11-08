@@ -131,7 +131,7 @@ struct WeatherWidget: View {
                     .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
                 Button("Allow Location") { weather.requestPermission() }
                     .font(.system(size: 13, weight: .bold))
-                    .buttonStyle(.bordered)
+                    .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex)))
             case .denied:
                 Text("Location is off for Go")
                     .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
@@ -139,13 +139,13 @@ struct WeatherWidget: View {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }
                 .font(.system(size: 13, weight: .bold))
-                .buttonStyle(.bordered)
+                .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex)))
             case .failed, .ready:
                 Text("Couldn't load weather")
                     .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
                 Button("Try Again") { weather.retry() }
                     .font(.system(size: 13, weight: .bold))
-                    .buttonStyle(.bordered)
+                    .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex)))
             }
         }
     }

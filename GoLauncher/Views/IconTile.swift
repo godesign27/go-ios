@@ -13,25 +13,41 @@ struct IconTile: View {
     /// Glyph size as a share of the tile.
     var glyphScale: CGFloat = 1
     var showsShadow = true
+    /// Frosted glass tile (Glass style) instead of a flat color.
+    var glass = false
 
     var body: some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
             let shape = RoundedRectangle(cornerRadius: side * cornerFactor, style: .continuous)
 
-            ZStack {
-                background
-                glyphView(side: side)
+            Group {
+                if glass && !isPicture {
+                    glyphView(side: side)
+                        .frame(width: side, height: side)
+                        .modifier(AtmosphericGlass(shape: shape, tone: Color(hex: backgroundHex), style: .icon))
+                } else {
+                    ZStack {
+                        background
+                        glyphView(side: side)
+                    }
+                    .frame(width: side, height: side)
+                    .clipShape(shape)
+                    // A hairline keeps same-colored neighbors apart when tiles touch.
+                    .overlay(shape.strokeBorder(showsShadow ? Color.white.opacity(0.08) : Color.black.opacity(0.18), lineWidth: 0.5))
+                    .shadow(color: .black.opacity(showsShadow ? 0.18 : 0), radius: side * 0.06, y: side * 0.03)
+                }
             }
-            .frame(width: side, height: side)
-            .clipShape(shape)
-            // A hairline keeps same-colored neighbors apart when tiles touch.
-            .overlay(shape.strokeBorder(showsShadow ? Color.white.opacity(0.08) : Color.black.opacity(0.18), lineWidth: 0.5))
-            .shadow(color: .black.opacity(showsShadow ? 0.18 : 0), radius: side * 0.06, y: side * 0.03)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .aspectRatio(1, contentMode: .fit)
         .frame(maxWidth: maxSize)
+    }
+
+    /// Photos and official App Store icons keep their own artwork, even in Glass style.
+    private var isPicture: Bool {
+        if case .image = glyph { return true }
+        return false
     }
 
     @ViewBuilder
@@ -80,22 +96,30 @@ struct AppIconView: View {
 
     private var nameInside: Bool { showLabel && theme.showLabels && theme.labelsInside }
 
+    /// Glass style draws every icon as a white symbol on frosted glass, so the official
+    /// App Store artwork steps aside for the app's symbol. Your own photos stay.
+    private var shownGlyph: IconGlyph {
+        if theme.usesGlassIcons, app.usesOfficialIcon, let fallback = app.fallbackGlyph { return fallback }
+        return app.glyph
+    }
+
     private var isPictureIcon: Bool {
-        if case .image = app.glyph { return true }
+        if case .image = shownGlyph { return true }
         return false
     }
 
     var body: some View {
         VStack(spacing: 6) {
             IconTile(
-                glyph: app.glyph,
+                glyph: shownGlyph,
                 backgroundHex: theme.uniformIconColors ? theme.uniformIconHex : app.colorHex,
                 secondaryHex: theme.uniformIconColors ? nil : app.secondaryColorHex,
                 glyphHex: theme.uniformIconColors ? theme.uniformGlyphHex : app.glyphColorHex,
                 maxSize: theme.fillCells ? .infinity : theme.iconSize,
                 cornerFactor: theme.cornerFactor,
                 glyphScale: nameInside ? 0.8 : 1,
-                showsShadow: theme.iconSpacing > 2
+                showsShadow: theme.iconSpacing > 2,
+                glass: theme.usesGlassIcons
             )
             .overlay(alignment: .bottomLeading) {
                 if nameInside {

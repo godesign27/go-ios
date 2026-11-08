@@ -5,7 +5,7 @@
 - **Custom icons and colors.** Every icon can be an SF Symbol, an emoji, or a photo, on a solid or gradient color. Icon shape can be anything from square to circle.
 - **Your own organization.** The screen opens with **Recently Used** (two rows) and **Favorites**, then Essentials, **Most Used**, your other groups (including **AI**), and **Needs Attention** for apps you've flagged. Rearrange any of them in Groups & Dock. Reorder by drag and drop, and collapse any section.
 - **Quick search and launch.** Type a few letters, press **Go**, and the best match opens. Results are ranked by name, extra keywords, and fuzzy matching, then by the apps you use most.
-- **Themes.** Six presets (Midnight, Sunset, Ocean, Mint, Paper, Mono) plus full control over gradient, wallpaper photo, fonts, label colors, columns, icon size, and matching "aesthetic" icon colors. Changes show live as you edit.
+- **Themes.** Five atmospheric wallpaper presets (Twilight, the default, plus Dusk, Haze, Daybreak, Blush) and six color presets (Midnight, Sunset, Ocean, Mint, Paper, Mono), three styles (Classic tinted cards, Glass frosted cards and see-through icons, edge-to-edge Tiles) plus full control over gradient, wallpaper photo, fonts, label colors, columns, icon size, and matching "aesthetic" icon colors. Changes show live as you edit.
 
 > **Why an app and not a "plugin"?** iOS doesn't let anything replace Apple's home screen. The closest you can get is a launcher like Go: keep it in your Dock or open it with Back Tap, and it becomes your real home screen. See [Make it feel like your home screen](#make-it-feel-like-your-home-screen).
 
@@ -68,6 +68,7 @@ It pulls the latest code, archives with a fresh build number, and uploads. The b
 | Use the real app logos | On by default: Go downloads each app's official icon from the App Store. Turn off in **Design › Icons › Official app icons**; pick one by hand in the icon editor › **Find App Store Icon** |
 | Change the look | **•••** › **Design** |
 | Two widgets at the top (Date & Time, Weather, Favorite Apps) | **•••** › **Design** › **Widgets** › **Show widgets**, then pick Left and Right |
+| Switch between Classic, Glass and Tiles | **•••** › **Design** › **Style** |
 | Edge-to-edge square tiles (no spacing, bigger tap areas) | **•••** › **Design** › Style › **Tiles**, or set the **Spacing** slider yourself |
 
 ### When an app won't open: use a Shortcut
