@@ -97,8 +97,29 @@ struct Theme: Codable, Hashable {
     var searchOnOpen = false
     /// Use each app's official App Store icon where one exists.
     var useOfficialIcons = true
+    /// Shown in the greeting ("Hello, Tim"). iOS doesn't share the owner's name with apps.
+    var userName = ""
 
     var labelColor: Color { Color(hex: labelColorHex) }
+
+    /// The background's own hue (midpoint of the gradient), used to tint cards and widgets
+    /// so they read as a lighter layer of the same color: tone on tone.
+    var toneHex: String {
+        func rgb(_ hex: String) -> (Double, Double, Double) {
+            var s = hex.trimmingCharacters(in: .whitespaces).uppercased()
+            if s.hasPrefix("#") { s.removeFirst() }
+            var v: UInt64 = 0
+            Scanner(string: String(s.prefix(6))).scanHexInt64(&v)
+            return (Double((v >> 16) & 0xFF), Double((v >> 8) & 0xFF), Double(v & 0xFF))
+        }
+        let a = rgb(backgroundTopHex), b = rgb(backgroundBottomHex)
+        return String(format: "#%02X%02X%02X", Int((a.0 + b.0) / 2), Int((a.1 + b.1) / 2), Int((a.2 + b.2) / 2))
+    }
+
+    /// One corner radius for cards and widgets so they harmonize (square in Tiles style).
+    var cardCornerRadius: CGFloat {
+        24 * min(cornerFactor, 0.24) / 0.24
+    }
 
     /// A Date & Time widget is on screen, so the header clock would repeat it.
     var showsDateWidget: Bool {
@@ -227,5 +248,6 @@ extension Theme {
         showClock = value(.showClock, d.showClock)
         searchOnOpen = value(.searchOnOpen, d.searchOnOpen)
         useOfficialIcons = value(.useOfficialIcons, d.useOfficialIcons)
+        userName = value(.userName, d.userName)
     }
 }

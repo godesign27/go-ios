@@ -13,6 +13,8 @@ struct HomeView: View {
     @State private var activeSheet: ActiveSheet?
     @State private var pendingDelete: LauncherApp?
     @State private var launchError: String?
+    @State private var askingName = false
+    @State private var nameDraft = ""
     @StateObject private var weather = WeatherService()
 
     private var theme: Theme { store.state.theme }
@@ -145,6 +147,8 @@ struct HomeView: View {
                             .monospacedDigit()
                     }
                 }
+            } else {
+                greeting
             }
             Spacer()
             if isEditing {
@@ -172,6 +176,41 @@ struct HomeView: View {
         .foregroundStyle(theme.labelColor)
         .shadow(color: .black.opacity(theme.isDark ? 0.25 : 0), radius: 3, y: 1)
         .padding(.bottom, 4)
+    }
+
+    // MARK: - Greeting
+
+    /// Fills the top-left when the big clock is hidden. Tap to set or change your name.
+    private var greeting: some View {
+        Button {
+            nameDraft = theme.userName
+            askingName = true
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(theme.userName.isEmpty ? "Hello" : "Hello, \(theme.userName)")
+                    .font(.system(size: 34, weight: .bold, design: theme.fontStyle.design))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                if theme.userName.isEmpty {
+                    Text("Tap to add your name")
+                        .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
+                        .opacity(0.7)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Changes the name in your greeting")
+        .alert("What should Go call you?", isPresented: $askingName) {
+            TextField("Your name", text: $nameDraft)
+                .textInputAutocapitalization(.words)
+            Button("Save") {
+                store.state.theme.userName = nameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("It's shown in your greeting and stays on this iPhone.")
+        }
     }
 
     // MARK: - Search button
@@ -248,12 +287,7 @@ struct HomeView: View {
     private func sectionCard<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12, content: content)
             .padding(theme.showGroupCards ? 14 : (theme.iconSpacing < 1 ? 0 : 4))
-            .background {
-                if theme.showGroupCards {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                }
-            }
+            .modifier(SectionCardSurface(theme: theme))
     }
 
     // MARK: - Swipe rows / grid
@@ -940,5 +974,18 @@ private struct Wiggle: ViewModifier {
                     withAnimation(.default) { phase = false }
                 }
             }
+    }
+}
+
+/// Section card background: tone-on-tone glass when cards are on, nothing when they're off.
+private struct SectionCardSurface: ViewModifier {
+    let theme: Theme
+
+    func body(content: Content) -> some View {
+        if theme.showGroupCards {
+            content.cardSurface(in: RoundedRectangle(cornerRadius: theme.cardCornerRadius, style: .continuous), theme: theme)
+        } else {
+            content
+        }
     }
 }

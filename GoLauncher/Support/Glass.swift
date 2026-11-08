@@ -31,6 +31,36 @@ extension View {
         #endif
     }
 
+    /// Cards and widgets: glass tinted with the background's own hue (tone on tone), with a
+    /// faint light rim so neighbors sit together as one family. Frosted tone fill on older iOS.
+    @ViewBuilder
+    func cardSurface<S: InsettableShape>(in shape: S, theme: Theme) -> some View {
+        let tone = Color(hex: theme.toneHex)
+        let rim = Color.white.opacity(theme.isDark ? 0.10 : 0.35)
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.tint(tone.opacity(theme.isDark ? 0.45 : 0.30)), in: shape)
+                .overlay(shape.strokeBorder(rim, lineWidth: 0.5))
+        } else {
+            toneFallback(shape: shape, tone: tone, rim: rim, isDark: theme.isDark)
+        }
+        #else
+        toneFallback(shape: shape, tone: tone, rim: rim, isDark: theme.isDark)
+        #endif
+    }
+
+    private func toneFallback<S: InsettableShape>(shape: S, tone: Color, rim: Color, isDark: Bool) -> some View {
+        self.background {
+            ZStack {
+                shape.fill(.ultraThinMaterial)
+                shape.fill(tone.opacity(isDark ? 0.55 : 0.35))
+                // A touch lighter at the top, like light catching the glass.
+                shape.fill(LinearGradient(colors: [.white.opacity(isDark ? 0.08 : 0.20), .clear], startPoint: .top, endPoint: .bottom))
+            }
+        }
+        .overlay(shape.strokeBorder(rim, lineWidth: 0.5))
+    }
+
     /// Glass button style (iOS 26+), or the closest bordered style on older iOS.
     @ViewBuilder
     func glassButtonStyle(prominent: Bool = false) -> some View {

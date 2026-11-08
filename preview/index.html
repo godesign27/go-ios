@@ -123,7 +123,18 @@ body {
 .cancel-q { border: 0; background: none; color: var(--label); font: 500 16px var(--app-font); cursor: pointer; padding: 0; }
 
 .group { margin-bottom: 14px; border-radius: 24px; padding: 4px; }
-.cards .group { padding: 14px; background: var(--material); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.cards .group { padding: 14px; border-radius: var(--card-r); }
+/* Tone on tone: cards and widgets are glass tinted with the background's own hue, sharing one radius and rim. */
+.cards .group, .widget:not(.flush) {
+  background: linear-gradient(color-mix(in srgb, var(--tone) 72%, white var(--tone-lift)), color-mix(in srgb, var(--tone) 82%, transparent));
+  backdrop-filter: blur(18px) saturate(170%); -webkit-backdrop-filter: blur(18px) saturate(170%);
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, var(--rim-top)), inset 0 0 0 .5px rgba(255, 255, 255, var(--rim));
+}
+.widget { border-radius: var(--card-r) !important; }
+#greeting { border: 0; background: none; color: var(--label); text-align: left; padding: 0; cursor: pointer; text-shadow: var(--label-shadow); min-width: 0; }
+#greeting .hello { font: 800 34px/1.1 var(--app-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#greeting .sub { font: 600 13px var(--app-font); opacity: .7; margin-top: 2px; }
+#greeting input { font: 800 28px var(--app-font); color: var(--label); background: transparent; border: 0; border-bottom: 2px solid color-mix(in srgb, var(--label) 50%, transparent); outline: 0; width: 220px; max-width: 100%; padding: 0 0 2px; }
 .ghead { display: flex; align-items: center; gap: 6px; width: 100%; border: 0; background: none; color: var(--label); cursor: pointer; padding: 0; font: 700 15px var(--app-font); text-shadow: var(--label-shadow); }
 .ghead .count { font-size: 13px; font-weight: 600; opacity: .6; }
 .ghead .chev { margin-left: auto; width: 14px; height: 14px; opacity: .6; transition: transform .2s; }
@@ -189,7 +200,7 @@ body {
 
 #headBtn { margin-left: auto; }
 /* Liquid Glass stand-in: translucent, saturated blur with a bright rim and soft depth. Controls only. */
-.fab, .round-btn, .done-btn, .dock, .widget:not(.flush), .search-view .searchbar, .view-all-screen .searchbar, .web-btn, .cancel-q {
+.fab, .round-btn, .done-btn, .dock, .search-view .searchbar, .view-all-screen .searchbar, .web-btn, .cancel-q {
   background: color-mix(in srgb, var(--label) 10%, transparent);
   backdrop-filter: blur(14px) saturate(190%); -webkit-backdrop-filter: blur(14px) saturate(190%);
   box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, .45), inset 0 -1px 1px rgba(0, 0, 0, .10), inset 0 0 0 .5px rgba(255, 255, 255, .22), 0 8px 24px rgba(0, 0, 0, .22);
@@ -338,6 +349,7 @@ body {
       <div class="scroll" id="scroll">
         <div class="header">
           <div id="clock"><div class="date" id="dateText"></div><div class="time" id="timeText"></div></div>
+          <div id="greeting" hidden></div>
           <div id="headBtn"></div>
         </div>
         <div id="widgets"></div>
@@ -407,7 +419,7 @@ body {
     serif: ['Serif', '"Newsreader", "New York", Georgia, serif'],
     mono: ['Mono', '"JetBrains Mono", ui-monospace, Menlo, monospace'],
   };
-  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true, iconSpacing: 6, fillCells: false, labelsInside: false, showWidgets: false, leftWidget: "dateTime", rightWidget: "weather", sectionLayout: "rows" };
+  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true, iconSpacing: 6, fillCells: false, labelsInside: false, userName: "", showWidgets: false, leftWidget: "dateTime", rightWidget: "weather", sectionLayout: "rows" };
   const TILES = { iconSpacing: 0, cornerFactor: 0, fillCells: true, labelsInside: true, showLabels: true, showGroupCards: false };
   const CLASSIC = { iconSpacing: 6, cornerFactor: .24, fillCells: false, labelsInside: false, showGroupCards: true };
   const matches = (t, p) => Object.keys(p).every(k => t[k] === p[k]);
@@ -541,6 +553,17 @@ body {
     // Hide the header clock when a Date & Time widget already shows it.
     const dateWidget = t.showWidgets && [t.leftWidget, t.rightWidget].includes("dateTime");
     $("clock").hidden = !t.showClock || dateWidget;
+    // Greeting fills the top-left whenever the big clock is hidden.
+    const g = $("greeting"); g.hidden = !$("clock").hidden;
+    if (!g.hidden && !g.querySelector("input")) {
+      g.innerHTML = `<button type="button" id="greetBtn" style="all:unset;cursor:pointer;display:block"><div class="hello">${t.userName ? "Hello, " + esc(t.userName) : "Hello"}</div>${t.userName ? "" : '<div class="sub">Tap to add your name</div>'}</button>`;
+    }
+    // Tone on tone: the midpoint of the background gradient tints cards and widgets.
+    const mix = (a, b) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return "#" + x.map((v, i) => Math.round((v + y[i]) / 2).toString(16).padStart(2, "0")).join(""); };
+    s.setProperty("--tone", mix(t.backgroundTopHex, t.backgroundBottomHex));
+    s.setProperty("--tone-lift", t.isDark ? "12%" : "40%");
+    s.setProperty("--rim", t.isDark ? ".10" : ".35"); s.setProperty("--rim-top", t.isDark ? ".22" : ".6");
+    s.setProperty("--card-r", (24 * Math.min(t.cornerFactor, .24) / .24) + "px");
   }
 
   // ---------- Home ----------
@@ -903,6 +926,7 @@ body {
           <div class="row"><span>Font</span><select id="fontSel" aria-label="Font">${Object.entries(FONTS).map(([k, v]) => `<option value="${k}" ${k === t.fontStyle ? "selected" : ""}>${v[0]}</option>`).join("")}</select></div></div>
         <div class="sec-title">Layout & behavior</div><div class="box">
           <div class="row col"><span>Sections</span><div class="seg"><button type="button" data-act="layout" data-v="rows" class="${t.sectionLayout !== "grid" ? "on" : ""}">Swipe Rows</button><button type="button" data-act="layout" data-v="grid" class="${t.sectionLayout === "grid" ? "on" : ""}">Full Grid</button></div></div>
+          <div class="row"><span>Your name</span><input type="text" id="userNameField" placeholder="For the greeting" value="${esc(t.userName || "")}" style="text-align:right" aria-label="Your name"></div>
           <div class="row ${t.showWidgets && [t.leftWidget, t.rightWidget].includes("dateTime") ? "disabled" : ""}"><span>Show clock & date</span><label class="switch"><input type="checkbox" data-theme-bool="showClock" ${t.showClock ? "checked" : ""}><span></span></label></div>
           <div class="row"><span>Group cards</span><label class="switch"><input type="checkbox" data-theme-bool="showGroupCards" ${t.showGroupCards ? "checked" : ""}><span></span></label></div></div>
         <div class="box" style="margin-top:26px"><div class="row"><button class="rowbtn danger" data-act="reset" type="button">Reset Everything to Default</button></div></div>
@@ -1032,6 +1056,7 @@ body {
       else if (el.id === "edFg") draft.glyphColorHex = el.value.toUpperCase();
       if (el.id && el.id.startsWith("ed")) refreshEditorPreview();
     }
+    if (el.id === "userNameField") { state.theme.userName = el.value.trim(); $("greeting").innerHTML = ""; render(); }
     if (el.id === "addQ") { addQuery = el.value; $("addList").innerHTML = addListHTML(); icons(); }
     if (el.dataset.gname) { const g = state.groups.find(x => x.id === el.dataset.gname); g.name = el.value; save(); renderContent(); icons(); }
     const t = state.theme;
@@ -1063,6 +1088,15 @@ body {
     else if (el.dataset.fav) { const f = state.favoriteAppIDs || (state.favoriteAppIDs = []); const i = f.indexOf(el.dataset.fav); if (i >= 0) f.splice(i, 1); else f.push(el.dataset.fav); render(); renderDesign(); }
   });
 
+  // Greeting: tap to type your name inline (the viewer blocks prompt()).
+  $("greeting").addEventListener("click", e => {
+    if (!e.target.closest("#greetBtn")) return;
+    $("greeting").innerHTML = `<input id="nameInput" type="text" placeholder="Your name" aria-label="Your name" value="${esc(state.theme.userName || "")}" autocomplete="given-name">`;
+    const input = $("nameInput"); input.focus();
+    const done = () => { state.theme.userName = input.value.trim(); $("greeting").innerHTML = ""; render(); };
+    input.addEventListener("keydown", ev => { if (ev.key === "Enter") done(); if (ev.key === "Escape") { $("greeting").innerHTML = ""; render(); } });
+    input.addEventListener("blur", done, { once: true });
+  });
   $("resetAll").addEventListener("click", () => { state = seed(); editing = false; closeSearch(); closeOverlay(); render(); toast("Reset to the starter layout"); });
 
   tick(); setInterval(tick, 15000);

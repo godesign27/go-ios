@@ -45,18 +45,14 @@ struct WidgetCard<Content: View>: View {
     var padded = true
     @ViewBuilder let content: Content
 
-    private var cornerRadius: CGFloat {
-        22 * min(theme.cornerFactor, 0.24) / 0.24
-    }
-
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: theme.cardCornerRadius, style: .continuous)
         content
             .padding(padded ? 14 : 0)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .aspectRatio(1, contentMode: .fit)
             .clipShape(shape)
-            .glassSurface(in: shape)
+            .cardSurface(in: shape, theme: theme)
             .foregroundStyle(theme.labelColor)
     }
 }

@@ -249,6 +249,12 @@ struct ThemeView: View {
                 ForEach(SectionLayout.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            HStack {
+                Text("Your name")
+                TextField("For the greeting", text: $store.state.theme.userName)
+                    .multilineTextAlignment(.trailing)
+                    .textInputAutocapitalization(.words)
+            }
             Toggle("Show clock & date", isOn: $store.state.theme.showClock)
                 .disabled(store.state.theme.showsDateWidget)
             Toggle("Group cards", isOn: $store.state.theme.showGroupCards)
