@@ -86,7 +86,7 @@ struct Theme: Codable, Hashable {
     var uniformGlyphHex = "#FFFFFF"
 
     // Widgets (two side by side above everything else)
-    var showWidgets = false
+    var showWidgets = true
     var leftWidget: WidgetKind = .dateTime
     var rightWidget: WidgetKind = .weather
 
