@@ -20,6 +20,7 @@ targets:
       properties:
         CFBundleDisplayName: Go
         UILaunchScreen: {}
+        NSLocationWhenInUseUsageDescription: Go uses your location only to show local weather in the Weather widget.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         CFBundleURLTypes:

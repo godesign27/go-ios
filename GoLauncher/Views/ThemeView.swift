@@ -12,6 +12,7 @@ struct ThemeView: View {
         NavigationStack {
             Form {
                 styleSection
+                widgetsSection
                 presetsSection
                 backgroundSection
                 iconsSection
@@ -89,6 +90,34 @@ struct ThemeView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("\(name) style")
         .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+
+    private var widgetsSection: some View {
+        Section {
+            Toggle("Show widgets", isOn: $store.state.theme.showWidgets)
+            if store.state.theme.showWidgets {
+                Picker("Left", selection: $store.state.theme.leftWidget) {
+                    ForEach(WidgetKind.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
+                }
+                Picker("Right", selection: $store.state.theme.rightWidget) {
+                    ForEach(WidgetKind.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
+                }
+                NavigationLink {
+                    FavoritesPickerView()
+                } label: {
+                    HStack {
+                        Text("Favorite Apps")
+                        Spacer()
+                        Text(store.state.favoriteAppIDs.isEmpty ? "Most used" : "\(store.state.favoriteAppIDs.count) picked")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } header: {
+            Text("Widgets")
+        } footer: {
+            Text("Two widgets side by side at the top of your home screen. Weather uses your location and the free Open-Meteo service.")
+        }
     }
 
     private var presetsSection: some View {

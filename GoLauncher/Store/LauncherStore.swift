@@ -44,6 +44,27 @@ final class LauncherStore: ObservableObject {
         state.apps.filter(\.needsAttention)
     }
 
+    /// The Favorite Apps widget: your picks, or your most used apps until you pick.
+    var favoriteApps: [LauncherApp] {
+        let picked = state.favoriteAppIDs.compactMap { id in state.apps.first { $0.id == id } }
+        if !picked.isEmpty { return Array(picked.prefix(4)) }
+        let mostUsed = mostUsedApps(limit: 4)
+        return mostUsed.count == 4 ? mostUsed : Array(state.apps.prefix(4))
+    }
+
+    func isFavorite(_ appID: UUID) -> Bool {
+        state.favoriteAppIDs.contains(appID)
+    }
+
+    /// Adds or removes an app from the Favorite Apps widget (max 4).
+    func toggleFavorite(_ appID: UUID) {
+        if let index = state.favoriteAppIDs.firstIndex(of: appID) {
+            state.favoriteAppIDs.remove(at: index)
+        } else if state.favoriteAppIDs.count < 4 {
+            state.favoriteAppIDs.append(appID)
+        }
+    }
+
     var dockApps: [LauncherApp] {
         Array(state.apps.filter(\.isDocked).prefix(5))
     }

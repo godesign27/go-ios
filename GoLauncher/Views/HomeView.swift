@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var activeSheet: ActiveSheet?
     @State private var pendingDelete: LauncherApp?
     @State private var launchError: String?
+    @StateObject private var weather = WeatherService()
 
     private var theme: Theme { store.state.theme }
 
@@ -24,6 +25,9 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     header
+                    if theme.showWidgets {
+                        WidgetsRow(weather: weather, theme: theme) { launch($0) }
+                    }
                     ForEach(store.visibleSections) { section in
                         switch section {
                         case .smart(let kind):
@@ -104,6 +108,9 @@ struct HomeView: View {
             switch phase {
             case .active:
                 if theme.searchOnOpen { openSearch() }
+                if theme.showWidgets, theme.leftWidget == .weather || theme.rightWidget == .weather {
+                    weather.refreshIfNeeded()
+                }
             case .background:
                 store.saveNow()
             default:

@@ -24,6 +24,29 @@ enum FontStyle: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// Go's built-in widgets for the top row. (iOS doesn't let apps show other apps' widgets.)
+enum WidgetKind: String, Codable, CaseIterable, Identifiable {
+    case dateTime, weather, favorites
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .dateTime: return "Date & Time"
+        case .weather: return "Weather"
+        case .favorites: return "Favorite Apps"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .dateTime: return "calendar.badge.clock"
+        case .weather: return "cloud.sun.fill"
+        case .favorites: return "square.grid.2x2.fill"
+        }
+    }
+}
+
 struct Theme: Codable, Hashable {
     // Background
     var backgroundTopHex = "#312E81"
@@ -50,6 +73,11 @@ struct Theme: Codable, Hashable {
     var uniformIconColors = false
     var uniformIconHex = "#FFFFFF33"
     var uniformGlyphHex = "#FFFFFF"
+
+    // Widgets (two side by side above everything else)
+    var showWidgets = false
+    var leftWidget: WidgetKind = .dateTime
+    var rightWidget: WidgetKind = .weather
 
     // Layout & behavior
     var showGroupCards = true

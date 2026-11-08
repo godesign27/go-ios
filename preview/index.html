@@ -136,6 +136,21 @@ body {
 .tile .inlabel { position: absolute; left: 7%; right: 7%; bottom: 7%; font: 700 11px/1.1 var(--app-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .tile.has-inlabel svg { width: 37%; height: 37%; margin-bottom: 10%; }
 .tile.has-inlabel .emoji { font-size: 44cqw; margin-bottom: 10%; }
+.widgets { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: 14px; }
+.widget { aspect-ratio: 1; min-width: 0; border-radius: var(--wr); background: var(--material); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 14px; display: flex; flex-direction: column; overflow: hidden; color: var(--label); text-shadow: var(--label-shadow); }
+.widget.flush { padding: 0; background: transparent; backdrop-filter: none; }
+.widget .spacer { flex: 1; }
+.w-dow { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; opacity: .75; }
+.w-day { font-size: 46px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.w-time { font-size: 26px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.w-small { font-size: 12px; font-weight: 600; opacity: .72; }
+.w-place { font-size: 13px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-temp { font-size: 44px; font-weight: 700; line-height: 1; }
+.w-cond { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.w-cond svg { width: 20px; height: 20px; color: #FFC93C; stroke-width: 2.2; }
+.fav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--fav-gap); width: 100%; height: 100%; }
+.fav-grid .cell .tile { width: 100%; box-shadow: none; }
+.fav-list { max-height: 220px; overflow-y: auto; }
 .style-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
 .style-card { border: 2.5px solid transparent; border-radius: 14px; background: rgba(120, 120, 128, .12); padding: 12px 10px 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--row-fg); font: 600 14px var(--body); }
 .style-card.on { border-color: var(--tint); }
@@ -292,6 +307,7 @@ body {
           <div id="clock"><div class="date" id="dateText"></div><div class="time" id="timeText"></div></div>
           <div id="headBtn"></div>
         </div>
+        <div id="widgets"></div>
         <div id="content"></div>
       </div>
       <div class="bottom-bar" id="bottomBar">
@@ -357,7 +373,7 @@ body {
     serif: ['Serif', '"Newsreader", "New York", Georgia, serif'],
     mono: ['Mono', '"JetBrains Mono", ui-monospace, Menlo, monospace'],
   };
-  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true, iconSpacing: 10, fillCells: false, labelsInside: false };
+  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true, iconSpacing: 10, fillCells: false, labelsInside: false, showWidgets: false, leftWidget: "dateTime", rightWidget: "weather" };
   const TILES = { iconSpacing: 0, cornerFactor: 0, fillCells: true, labelsInside: true, showLabels: true, showGroupCards: false };
   const CLASSIC = { iconSpacing: 10, cornerFactor: .24, fillCells: false, labelsInside: false, showGroupCards: true };
   const matches = (t, p) => Object.keys(p).every(k => t[k] === p[k]);
@@ -386,17 +402,17 @@ body {
     apps.forEach(a => { const h = history[a.name]; if (h) { a.launchCount = h[0]; a.lastLaunched = now - h[1] * min; } });
     apps.forEach(a => { if (a.name === "Reminders" || a.name === "Calendar") a.needsAttention = true; });
     apps.forEach(a => { if (["Phone", "Messages", "Safari", "Music"].includes(a.name)) a.isDocked = true; });
-    return { groups: g, apps, theme: { ...DEFAULT_THEME }, collapsedSections: [], sectionOrder: [], hiddenSections: [], showDock: false, recentSearches: ["spotify", "claude", "maps", "weather"] };
+    return { groups: g, apps, theme: { ...DEFAULT_THEME, showWidgets: true }, favoriteAppIDs: [], collapsedSections: [], sectionOrder: [], hiddenSections: [], showDock: false, recentSearches: ["spotify", "claude", "maps", "weather"] };
   }
 
-  const KEY = "go-launcher-preview-v3";
+  const KEY = "go-launcher-preview-v4";
   let state;
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
   if (!state || !state.apps || !state.groups || !state.theme) state = seed();
   state.theme = { ...DEFAULT_THEME, ...state.theme };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
 
-  let editing = false;
+  let editing = false, favListOpen = false;
   let query = "";
   const $ = id => document.getElementById(id);
   const screen = $("screen"), content = $("content"), overlay = $("overlay"), qInput = $("q");
@@ -462,6 +478,7 @@ body {
     s.setProperty("--bg-top", t.backgroundTopHex); s.setProperty("--bg-bottom", t.backgroundBottomHex);
     s.setProperty("--label", t.labelColorHex); s.setProperty("--app-font", FONTS[t.fontStyle][1]);
     s.setProperty("--icon", t.iconSize + "px"); s.setProperty("--corner", t.cornerFactor); s.setProperty("--cols", t.columns);
+    s.setProperty("--wr", (22 * Math.min(t.cornerFactor, .24) / .24) + "px"); s.setProperty("--fav-gap", t.iconSpacing >= 1 ? "10px" : "0px");
     s.setProperty("--gap", t.iconSpacing + "px"); s.setProperty("--row-gap", (t.showLabels && !t.labelsInside ? t.iconSpacing + 6 : t.iconSpacing) + "px");
     screen.classList.toggle("fill", !!t.fillCells); screen.classList.toggle("noshadow", t.iconSpacing <= 2);
     screen.classList.toggle("flush", t.iconSpacing < 1 && !t.showGroupCards);
@@ -538,13 +555,38 @@ body {
     }
     icons();
   }
-  function render() { applyTheme(); renderHeadBtn(); renderContent(); icons(); save(); }
+  // ---------- Widgets ----------
+  const WIDGETS = { dateTime: "Date & Time", weather: "Weather", favorites: "Favorite Apps" };
+  function favoriteApps() {
+    const picked = (state.favoriteAppIDs || []).map(byId).filter(Boolean);
+    if (picked.length) return picked.slice(0, 4);
+    const mu = mostUsedApps(4); return mu.length === 4 ? mu : state.apps.slice(0, 4);
+  }
+  function widgetHTML(kind) {
+    const now = new Date();
+    if (kind === "dateTime") return `<div class="widget" aria-label="Date and time">
+      <div class="w-dow">${now.toLocaleDateString(undefined, { weekday: "long" })}</div>
+      <div class="w-day">${now.getDate()}</div><div class="spacer"></div>
+      <div class="w-time">${now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M$/i, "")}</div>
+      <div class="w-small">${now.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</div></div>`;
+    if (kind === "weather") return `<div class="widget" aria-label="Weather (sample)">
+      <div class="w-place">Your location</div><div class="w-temp">64°</div><div class="spacer"></div>
+      <div class="w-cond"><i data-lucide="cloud-sun"></i></div><div class="w-cond">Partly Cloudy</div><div class="w-small">H:70°  L:52°</div></div>`;
+    const flush = state.theme.iconSpacing < 1;
+    return `<div class="widget ${flush ? "flush" : ""}" aria-label="Favorite apps"><div class="fav-grid">${favoriteApps().map(a => `<button class="cell still" type="button" data-act="app" data-id="${a.id}" aria-label="${esc(a.name)}">${appTile(a)}</button>`).join("")}</div></div>`;
+  }
+  function renderWidgets() {
+    const t = state.theme;
+    $("widgets").innerHTML = t.showWidgets ? `<div class="widgets">${widgetHTML(t.leftWidget)}${widgetHTML(t.rightWidget)}</div>` : "";
+  }
+  function render() { applyTheme(); renderHeadBtn(); renderWidgets(); renderContent(); icons(); save(); }
 
   function tick() {
     const now = new Date();
     $("dateText").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
     $("timeText").textContent = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M$/i, "");
     $("sbTime").textContent = $("timeText").textContent;
+    if (state && state.theme.showWidgets && [state.theme.leftWidget, state.theme.rightWidget].includes("dateTime")) { renderWidgets(); icons(); }
   }
 
   // ---------- Toast ----------
@@ -711,7 +753,7 @@ body {
 
   // ---------- Design ----------
   function renderDesign() {
-    const t = state.theme;
+    const t = state.theme, keepScroll = overlay.querySelector(".sheet.half .form")?.scrollTop || 0;
     const presetOn = n => { const p = PRESETS.find(x => x[0] === n)[1]; return Object.keys(p).every(k => t[k] === p[k]); };
     const uniAlpha = t.uniformIconHex.length === 9 ? parseInt(t.uniformIconHex.slice(7), 16) / 255 : 1;
     const shape = t.cornerFactor < .06 ? "Square" : t.cornerFactor < .33 ? "Rounded" : t.cornerFactor < .46 ? "Squircle" : "Circle";
@@ -722,6 +764,15 @@ body {
           ${[["Classic", isClassic(t), ""], ["Tiles", isTiles(t), "tiles"]].map(([n, on, cls]) => `<button class="style-card ${cls} ${on ? "on" : ""}" type="button" data-act="style" data-v="${n}"><span class="mini-grid">${["#F472B6", "#818CF8", "#34D399", "#FBBF24", "#38BDF8", "#F97316"].map(c => `<i style="background:${c}"></i>`).join("")}</span>${n}</button>`).join("")}
         </div></div></div>
         <div class="sec-foot">Tiles: no spacing, square edges, and every app fills its whole cell for a bigger tap area. Names sit inside the tiles. You can still fine-tune each setting below.</div>
+        <div class="sec-title">Widgets</div><div class="box">
+          <div class="row"><span>Show widgets</span><label class="switch"><input type="checkbox" data-theme-bool="showWidgets" data-rerender="1" ${t.showWidgets ? "checked" : ""}><span></span></label></div>
+          ${t.showWidgets ? `
+          <div class="row"><span>Left</span><select id="wLeft" aria-label="Left widget">${Object.entries(WIDGETS).map(([k, n]) => `<option value="${k}" ${k === t.leftWidget ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+          <div class="row"><span>Right</span><select id="wRight" aria-label="Right widget">${Object.entries(WIDGETS).map(([k, n]) => `<option value="${k}" ${k === t.rightWidget ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+          <div class="row"><button class="rowbtn" data-act="fav-list" type="button" style="color:var(--row-fg)">Favorite Apps</button><span class="val">${(state.favoriteAppIDs || []).length ? state.favoriteAppIDs.length + " picked" : "Most used"}</span><i data-lucide="${favListOpen ? "chevron-down" : "chevron-right"}" style="width:16px;height:16px;color:var(--row-muted)"></i></div>
+          ${favListOpen ? `<div class="fav-list">${state.apps.map(a => { const on = (state.favoriteAppIDs || []).includes(a.id), full = (state.favoriteAppIDs || []).length >= 4; return `<div class="row"><span style="display:flex;align-items:center;gap:10px"><span class="mini" style="--icon:28px;width:28px;display:block">${tileHTML(a.glyph, a.colorHex, a.secondaryColorHex, a.glyphColorHex)}</span>${esc(a.name)}</span><input type="checkbox" data-fav="${a.id}" ${on ? "checked" : ""} ${!on && full ? "disabled" : ""} aria-label="Favorite ${esc(a.name)}" style="width:20px;height:20px;accent-color:var(--tint)"></div>`; }).join("")}</div>` : ""}` : ""}
+        </div>
+        <div class="sec-foot">${t.showWidgets ? "Pick up to 4 favorite apps; until you do, the widget shows your most used apps. In this preview the weather is sample data; on iPhone it uses your location." : "Two widgets side by side at the top of your home screen."}</div>
         <div class="sec-title">Presets</div><div class="box"><div class="row col"><div class="presets">
           ${PRESETS.map(([n, p]) => { const pt = { ...DEFAULT_THEME, ...p }; const cols = ["#F472B6", "#818CF8", "#34D399", "#FBBF24"];
             return `<button class="preset ${presetOn(n) ? "on" : ""}" type="button" data-act="preset" data-v="${n}"><span class="sw" style="background:linear-gradient(${pt.backgroundTopHex},${pt.backgroundBottomHex})">${cols.map(c => `<i style="background:${pt.uniformIconColors ? pt.uniformIconHex : c};border-radius:${pt.cornerFactor * 16}px"></i>`).join("")}</span><span style="font-family:${FONTS[pt.fontStyle][1]}">${n}</span></button>`; }).join("")}
@@ -752,6 +803,7 @@ body {
           <div class="row"><span>Group cards</span><label class="switch"><input type="checkbox" data-theme-bool="showGroupCards" ${t.showGroupCards ? "checked" : ""}><span></span></label></div></div>
         <div class="box" style="margin-top:26px"><div class="row"><button class="rowbtn danger" data-act="reset" type="button">Reset Everything to Default</button></div></div>
       </div></div>`;
+    overlay.querySelector(".form").scrollTop = keepScroll;
     icons();
   }
 
@@ -852,6 +904,7 @@ body {
       case "g-del": { if (state.groups.length < 2) return; const rest = state.groups.filter(g => g.id !== gid); state.apps.forEach(a => { if (a.groupID === gid) a.groupID = rest[0].id; }); state.groups = rest; state.sectionOrder = (state.sectionOrder || []).filter(k => k !== gid); render(); renderGroups(); break; }
       // design
       case "preset": Object.assign(state.theme, PRESETS.find(p => p[0] === v)[1]); render(); renderDesign(); break;
+      case "fav-list": favListOpen = !favListOpen; renderDesign(); break;
       case "style": Object.assign(state.theme, v === "Tiles" ? TILES : CLASSIC); render(); renderDesign(); break;
       case "cols": state.theme.columns = Math.min(6, Math.max(3, state.theme.columns + Number(v))); $("colN").textContent = state.theme.columns; render(); break;
       case "reset": state = seed(); editing = false; closeOverlay(); render(); toast("Reset to the starter layout"); break;
@@ -898,6 +951,8 @@ body {
     }
     else if (el.dataset.themeBool) { t[el.dataset.themeBool] = el.checked; render(); if (el.dataset.rerender) renderDesign(); }
     else if (el.id === "fontSel") { t.fontStyle = el.value; render(); }
+    else if (el.id === "wLeft" || el.id === "wRight") { t[el.id === "wLeft" ? "leftWidget" : "rightWidget"] = el.value; render(); }
+    else if (el.dataset.fav) { const f = state.favoriteAppIDs || (state.favoriteAppIDs = []); const i = f.indexOf(el.dataset.fav); if (i >= 0) f.splice(i, 1); else if (f.length < 4) f.push(el.dataset.fav); render(); renderDesign(); }
   });
 
   $("resetAll").addEventListener("click", () => { state = seed(); editing = false; closeSearch(); closeOverlay(); render(); toast("Reset to the starter layout"); });

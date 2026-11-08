@@ -87,6 +87,8 @@ struct LauncherState: Codable {
     var showDock = false
     /// Newest first.
     var recentSearches: [String] = []
+    /// Up to 4 apps shown in the Favorite Apps widget.
+    var favoriteAppIDs: [UUID] = []
 }
 
 /// Sections Go fills in by itself.
