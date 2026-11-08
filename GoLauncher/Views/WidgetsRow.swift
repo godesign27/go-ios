@@ -55,8 +55,8 @@ struct WidgetCard<Content: View>: View {
             .padding(padded ? 14 : 0)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .aspectRatio(1, contentMode: .fit)
-            .background(.ultraThinMaterial, in: shape)
             .clipShape(shape)
+            .glassSurface(in: shape)
             .foregroundStyle(theme.labelColor)
     }
 }

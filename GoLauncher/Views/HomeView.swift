@@ -46,12 +46,14 @@ struct HomeView: View {
                 .padding(.bottom, showsDock ? 190 : 96)
             }
 
-            VStack(alignment: .trailing, spacing: 12) {
-                if !isEditing {
-                    searchButton
-                }
-                if showsDock {
-                    dock
+            GlassGroup(spacing: 16) {
+                VStack(alignment: .trailing, spacing: 12) {
+                    if !isEditing {
+                        searchButton
+                    }
+                    if showsDock {
+                        dock
+                    }
                 }
             }
             .padding(.horizontal, showsDock ? 12 : 20)
@@ -150,9 +152,7 @@ struct HomeView: View {
                     withAnimation { isEditing = false }
                 }
                 .font(.system(.body, design: theme.fontStyle.design).weight(.semibold))
-                .buttonStyle(.borderedProminent)
-                .tint(theme.labelColor.opacity(0.25))
-                .foregroundStyle(theme.labelColor)
+                .glassButtonStyle(prominent: true)
             } else {
                 Menu {
                     Button { activeSheet = .add(nil) } label: { Label("Add App", systemImage: "plus.app") }
@@ -162,8 +162,9 @@ struct HomeView: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 18, weight: .bold))
-                        .frame(width: 40, height: 40)
-                        .background(.ultraThinMaterial, in: Circle())
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
+                        .glassSurface(in: Circle(), interactive: true)
                 }
                 .accessibilityLabel("Options")
             }
@@ -180,10 +181,9 @@ struct HomeView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(theme.labelColor)
-                .frame(width: 58, height: 58)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().strokeBorder(.white.opacity(0.15), lineWidth: 0.5))
-                .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+                .frame(width: 56, height: 56)
+                .contentShape(Circle())
+                .glassSurface(in: Circle(), interactive: true)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Search apps")
@@ -319,10 +319,10 @@ struct HomeView: View {
         cell: @escaping (LauncherApp) -> Cell
     ) -> some View {
         if usesRows {
-            let stripColumns = stripColumns(count: apps.count, rows: rows)
+            let columnIndices = stripColumns(count: apps.count, rows: rows)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: theme.iconSpacing) {
-                    ForEach(Array(stripColumns.enumerated()), id: \.offset) { _, column in
+                    ForEach(Array(columnIndices.enumerated()), id: \.offset) { _, column in
                         VStack(spacing: theme.rowSpacing) {
                             ForEach(column, id: \.self) { index in
                                 cell(apps[index])
@@ -507,10 +507,9 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 11)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .glassSurface(in: Capsule())
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(.ultraThinMaterial)
                 }
             }
             .background {
@@ -583,6 +582,7 @@ struct HomeView: View {
     @ViewBuilder
     private func contextMenu(for app: LauncherApp) -> some View {
         Button { activeSheet = .edit(app) } label: { Label("Edit Icon", systemImage: "pencil") }
+        Divider()
         Button { store.toggleFavorite(app.id) } label: {
             Label(store.isFavorite(app.id) ? "Remove from Favorites" : "Add to Favorites",
                   systemImage: store.isFavorite(app.id) ? "star.slash" : "star")
@@ -596,6 +596,7 @@ struct HomeView: View {
                 Label(app.isDocked ? "Remove from Dock" : "Add to Dock", systemImage: "dock.rectangle")
             }
         }
+        Divider()
         Menu {
             ForEach(store.state.groups) { group in
                 Button(group.name) { store.move(appID: app.id, toGroup: group.id) }
@@ -631,7 +632,7 @@ struct HomeView: View {
         .padding(.vertical, 14)
         .padding(.horizontal, 8)
         .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+        .glassSurface(in: RoundedRectangle(cornerRadius: 32, style: .continuous))
     }
 
     // MARK: - Sheets
@@ -784,15 +785,15 @@ struct SearchOverlay: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 11)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .glassSurface(in: Capsule())
 
             Button("Cancel", action: onClose)
-                .foregroundStyle(theme.labelColor)
+                .font(.system(.body, design: theme.fontStyle.design).weight(.semibold))
+                .glassButtonStyle()
         }
         .padding(.horizontal, 16)
         .padding(.top, 10)
         .padding(.bottom, 8)
-        .background(.ultraThinMaterial)
     }
 
     @ViewBuilder
@@ -869,7 +870,8 @@ struct SearchOverlay: View {
                 .font(.system(.subheadline, design: theme.fontStyle.design).weight(.medium))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .contentShape(Capsule())
+                .glassSurface(in: Capsule(), interactive: true)
         }
         .buttonStyle(.plain)
         if matches.isEmpty {
@@ -926,10 +928,11 @@ struct WallpaperView: View {
 private struct Wiggle: ViewModifier {
     let active: Bool
     @State private var phase = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
-            .rotationEffect(.degrees(active ? (phase ? 1.6 : -1.6) : 0))
+            .rotationEffect(.degrees(active && !reduceMotion ? (phase ? 1.6 : -1.6) : 0))
             .onChange(of: active, initial: true) { _, isActive in
                 if isActive {
                     withAnimation(.easeInOut(duration: 0.13).repeatForever(autoreverses: true)) { phase = true }

@@ -13,7 +13,7 @@
 
 ## Install it on your iPhone
 
-You need a **Mac with Xcode 15 or later** (free on the Mac App Store) and an iPhone on **iOS 17 or later**. A free Apple ID is enough.
+You need a **Mac with Xcode** (free on the Mac App Store) and an iPhone on **iOS 17 or later**. Use **Xcode 26** with an iPhone on **iOS 26** to get Apple's Liquid Glass look; older versions build fine and use a frosted look instead. A free Apple ID is enough; a paid developer account works too.
 
 1. **Get the code**
    ```bash
@@ -27,7 +27,7 @@ You need a **Mac with Xcode 15 or later** (free on the Mac App Store) and an iPh
    open GoLauncher.xcodeproj
    ```
 3. **Set up signing.** In Xcode, click the **GoLauncher** project, then the **GoLauncher** target, then **Signing & Capabilities**:
-   - **Team:** pick your Apple ID (add it under Xcode › Settings › Accounts if needed).
+   - **Team:** pick your Apple ID or your developer team (add it under Xcode › Settings › Accounts if needed).
    - **Bundle Identifier:** change it to something unique, e.g. `com.yourname.golauncher`.
 4. **Run it.** Plug in your iPhone (or connect over Wi-Fi), choose it at the top of Xcode, and press **▶ Run**.
 5. **First launch only.** On the iPhone, go to **Settings › General › VPN & Device Management**, tap your Apple ID, then **Trust**. If iOS asks, also turn on **Settings › Privacy & Security › Developer Mode**.

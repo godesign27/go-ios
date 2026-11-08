@@ -97,7 +97,8 @@ struct AppIconView: View {
                     // Name inside the tile, like a label on a card.
                     Text(app.name)
                         .font(.system(size: 11, weight: .semibold, design: theme.fontStyle.design))
-                        .foregroundStyle(Color(hex: theme.uniformIconColors ? theme.uniformGlyphHex : app.glyphColorHex))
+                        // Dark or light text, whichever reads better on this tile (WCAG contrast).
+                        .foregroundStyle(Color.readableText(onHex: theme.uniformIconColors ? theme.uniformIconHex : app.colorHex))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .padding(.horizontal, 7)
