@@ -67,16 +67,16 @@ enum SectionLayout: String, Codable, CaseIterable, Identifiable {
 }
 
 struct Theme: Codable, Hashable {
-    // Background (default: the Twilight wallpaper). The gradient colors match the
-    // wallpaper; they tint cards when Reduce Transparency is on and show behind it while it loads.
-    var backgroundTopHex = "#0B1652"
-    var backgroundBottomHex = "#3A2D9C"
+    // Background (default: Cloud, near-white with deep navy text). With a wallpaper, these
+    // colors match it; they tint cards when Reduce Transparency is on.
+    var backgroundTopHex = "#FBFCFE"
+    var backgroundBottomHex = "#E4EAF4"
     /// Your own photo. Shown instead of `bundledWallpaper` when set.
     var wallpaperFilename: String? = nil
     /// One of Go's built-in wallpapers (an asset catalog image name).
-    var bundledWallpaper: String? = "WallpaperTwilight"
+    var bundledWallpaper: String? = nil
     var wallpaperDim: Double = 0
-    var isDark = true
+    var isDark = false
 
     // Icons
     var iconSize: Double = 62
@@ -90,7 +90,7 @@ struct Theme: Codable, Hashable {
     /// App names drawn inside the icon instead of underneath.
     var labelsInside = false
     var showLabels = true
-    var labelColorHex = "#FFFFFF"
+    var labelColorHex = "#0A1633"
     var fontStyle: FontStyle = .rounded
     /// When on, every icon uses the same colors below (great for minimal/aesthetic looks).
     /// A see-through color (#RRGGBBAA) makes frosted glass tiles.
@@ -115,6 +115,9 @@ struct Theme: Codable, Hashable {
     var userName = ""
 
     var labelColor: Color { Color(hex: labelColorHex) }
+
+    /// Dark text on a light background (Cloud, Mint, Paper): cards use light glass.
+    var hasDarkText: Bool { Color.luminance(ofHex: labelColorHex) < 0.5 }
 
     /// Secondary text and small controls (counts, dates, hints, chevrons): 85% of the label
     /// color, the top of the 75-85% range, so it keeps WCAG AA contrast (4.5:1) on cards.
@@ -240,6 +243,22 @@ struct ThemePreset: Identifiable {
         wallpaper("Haze", top: "#9AA6EE", bottom: "#4C6BC4", dim: 0),
         wallpaper("Daybreak", top: "#D6BFE6", bottom: "#5B78D8", dim: 0),
         wallpaper("Blush", top: "#E3A9C0", bottom: "#A27DBF", dim: 0),
+        // High contrast: near-black navy with crisp white text.
+        ThemePreset(name: "Onyx") { t in
+            t.bundledWallpaper = nil; t.wallpaperFilename = nil; t.wallpaperDim = 0
+            t.backgroundTopHex = "#0A1022"; t.backgroundBottomHex = "#03050B"
+            t.isDark = true; t.labelColorHex = "#FFFFFF"
+            t.fontStyle = .rounded
+            t.applyGlass()
+        },
+        // High contrast: cloud white with deep navy text.
+        ThemePreset(name: "Cloud") { t in
+            t.bundledWallpaper = nil; t.wallpaperFilename = nil; t.wallpaperDim = 0
+            t.backgroundTopHex = "#FBFCFE"; t.backgroundBottomHex = "#E4EAF4"
+            t.isDark = false; t.labelColorHex = "#0A1633"
+            t.fontStyle = .rounded
+            t.applyGlass()
+        },
         ThemePreset(name: "Midnight") { t in
             t.bundledWallpaper = nil
             t.backgroundTopHex = "#312E81"; t.backgroundBottomHex = "#0F172A"

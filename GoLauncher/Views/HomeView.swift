@@ -4,6 +4,7 @@ struct HomeView: View {
     @EnvironmentObject private var store: LauncherStore
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
+    @State private var designDetent: PresentationDetent = .large
 
     @State private var isSearching = false
     @State private var viewAllKey: String?
@@ -85,6 +86,7 @@ struct HomeView: View {
             }
         }
         .background { WallpaperView(theme: theme) }
+        .environment(\.legibility, WallpaperView.legibility(theme: theme, store: store))
         .preferredColorScheme(theme.isDark ? .dark : .light)
         .animation(.snappy, value: store.state.apps)
         .animation(.snappy, value: store.state.groups)
@@ -165,13 +167,14 @@ struct HomeView: View {
                     Button { activeSheet = .groups } label: { Label("Groups & Dock", systemImage: "rectangle.3.group") }
                     Button { activeSheet = .theme } label: { Label("Design", systemImage: "paintpalette") }
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 18, weight: .bold))
+                    // Everything in this menu customizes the home screen.
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 17, weight: .semibold))
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
                         .glassSurface(in: Circle(), interactive: true)
                 }
-                .accessibilityLabel("Options")
+                .accessibilityLabel("Customize")
             }
         }
         .foregroundStyle(theme.labelColor)
@@ -700,9 +703,11 @@ struct HomeView: View {
         case .groups:
             GroupsView()
         case .theme:
+            // Opens full height; drag it down to half to watch changes on the home screen.
             ThemeView()
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.medium, .large], selection: $designDetent)
                 .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                .onAppear { designDetent = .large }
         }
     }
 
@@ -948,34 +953,55 @@ struct WallpaperView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            let image = wallpaperImage
-            if let image {
+            if let image = Self.image(theme: theme, store: store) {
                 Color.clear
                     .overlay {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFill()
+                            // A little extra color, so the wallpaper stays lively under the glass.
+                            .saturation(1.18)
                     }
                     .clipped()
+                if theme.wallpaperDim > 0 { Color.black.opacity(theme.wallpaperDim) }
             }
-            // Your dimming, or more if white text would otherwise fall below WCAG AA contrast.
-            Color.black.opacity(max(theme.wallpaperDim * (image == nil ? 0 : 1),
-                                    ContrastGuard.requiredDim(theme: theme, image: image, imageKey: wallpaperKey)))
+            // A soft fade in the wallpaper's own deep color behind the greeting, only as strong
+            // as WCAG contrast needs. The rest of the wallpaper keeps its full color.
+            let legibility = Self.legibility(theme: theme, store: store)
+            LinearGradient(
+                stops: [
+                    .init(color: legibility.tint.opacity(legibility.headerScrim), location: 0),
+                    .init(color: legibility.tint.opacity(legibility.headerScrim * 0.8), location: 0.18),
+                    .init(color: legibility.tint.opacity(0), location: 0.38),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
         }
         .ignoresSafeArea()
     }
 
     /// Your photo first, then Go's built-in wallpaper.
-    private var wallpaperImage: UIImage? {
+    static func image(theme: Theme, store: LauncherStore) -> UIImage? {
         if let name = theme.wallpaperFilename, let image = store.image(named: name) { return image }
         if let name = theme.bundledWallpaper { return UIImage(named: name) }
         return nil
     }
 
-    /// Cache key for the contrast measurement of the current image.
-    private var wallpaperKey: String? {
-        if let name = theme.wallpaperFilename, store.image(named: name) != nil { return "photo:" + name }
-        return theme.bundledWallpaper.map { "bundled:" + $0 }
+    /// The tints that keep text readable on this background (see ContrastGuard).
+    static func legibility(theme: Theme, store: LauncherStore) -> Legibility {
+        var key: String?
+        if let name = theme.wallpaperFilename, store.image(named: name) != nil {
+            key = "photo:\(name):\(theme.wallpaperDim)"
+        } else if let name = theme.bundledWallpaper {
+            key = "bundled:\(name):\(theme.wallpaperDim)"
+        }
+        var result = ContrastGuard.legibility(theme: theme, image: image(theme: theme, store: store), imageKey: key)
+        // Your own dimming already darkens the photo; don't tint more than needed on top.
+        if theme.wallpaperDim > 0, key != nil {
+            result.cardTint = max(0, result.cardTint - theme.wallpaperDim)
+            result.headerScrim = max(0, result.headerScrim - theme.wallpaperDim)
+        }
+        return result
     }
 }
 

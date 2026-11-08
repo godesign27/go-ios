@@ -5,7 +5,7 @@
 - **Custom icons and colors.** Every icon can be an SF Symbol, an emoji, or a photo, on a solid or gradient color. Icon shape can be anything from square to circle.
 - **Your own organization.** The screen opens with **Recently Used** (two rows) and **Favorites**, then Essentials, **Most Used**, your other groups (including **AI**), and **Needs Attention** for apps you've flagged. Rearrange any of them in Groups & Dock. Reorder by drag and drop, and collapse any section.
 - **Quick search and launch.** Type a few letters, press **Go**, and the best match opens. Results are ranked by name, extra keywords, and fuzzy matching, then by the apps you use most.
-- **Themes.** Five atmospheric wallpaper presets (Twilight, the default, plus Dusk, Haze, Daybreak, Blush) and six color presets (Midnight, Sunset, Ocean, Mint, Paper, Mono), three styles (Classic tinted cards, Glass frosted cards and see-through icons, edge-to-edge Tiles) plus full control over gradient, wallpaper photo, fonts, label colors, columns, icon size, and matching "aesthetic" icon colors. Changes show live as you edit.
+- **Themes.** High-contrast Cloud (the default: cloud white with deep navy text) and Onyx (near-black navy with white text), five atmospheric wallpapers (Twilight, Dusk, Haze, Daybreak, Blush) and six color presets (Midnight, Sunset, Ocean, Mint, Paper, Mono), three styles (Classic tinted cards, Glass frosted cards and see-through icons, edge-to-edge Tiles) plus full control over gradient, wallpaper photo, fonts, label colors, columns, icon size, and matching "aesthetic" icon colors. Changes show live as you edit.
 
 > **Why an app and not a "plugin"?** iOS doesn't let anything replace Apple's home screen. The closest you can get is a launcher like Go: keep it in your Dock or open it with Back Tap, and it becomes your real home screen. See [Make it feel like your home screen](#make-it-feel-like-your-home-screen).
 
@@ -53,23 +53,23 @@ It pulls the latest code, archives with a fresh build number, and uploads. The b
 | To… | Do this |
 | --- | --- |
 | Open an app | Tap its icon, or tap the search button (bottom right), type, and press **Go** |
-| Add an app | **•••** › **Add App**: pick from the list, or choose **Custom** |
+| Add an app | **Customize** (sliders button) › **Add App**: pick from the list, or choose **Custom** |
 | Get the apps already on your iPhone | Automatic: each time Go opens, it checks for the ~50 popular apps it knows and adds the ones you have to **Your Apps**. iOS doesn't let any app see everything installed, so add others with **Add App › Custom**. Delete one and it stays deleted. |
 | Edit an icon (name, symbol, emoji, photo, colors) | Long-press › **Edit Icon** |
 | Rearrange | Long-press an icon and drag it onto another icon or onto a group title |
 | Move to another group | Long-press › **Move to Group** |
-| Edit everything at once | **•••** › **Edit Layout**. Icons wiggle: tap one to edit, **–** to remove, **+** to add |
+| Edit everything at once | **Customize** (sliders button) › **Edit Layout**. Icons wiggle: tap one to edit, **–** to remove, **+** to add |
 | Add an app to Favorites | Long-press › **Add to Favorites**. The Favorites section shows them all; the Favorite Apps widget shows the first four. |
 | Flag an app to come back to | Long-press › **Needs Attention**. Opening the app clears the flag. |
-| Arrange sections, rename/add/delete groups, hide automatic sections | **•••** › **Groups & Dock** |
-| Bring back the bottom dock | **•••** › **Groups & Dock** › **Show Dock**, then long-press apps › **Add to Dock** |
+| Arrange sections, rename/add/delete groups, hide automatic sections | **Customize** (sliders button) › **Groups & Dock** |
+| Bring back the bottom dock | **Customize** (sliders button) › **Groups & Dock** › **Show Dock**, then long-press apps › **Add to Dock** |
 | See more apps in a section | Swipe the row left, or tap **View All** (a search bar appears at the bottom when there are more than four rows) |
-| Show every app at once instead of swipe rows | **•••** › **Design** › Layout & behavior › Sections › **Full Grid** |
+| Show every app at once instead of swipe rows | **Customize** (sliders button) › **Design** › Layout & behavior › Sections › **Full Grid** |
 | Use the real app logos | On by default: Go downloads each app's official icon from the App Store. Turn off in **Design › Icons › Official app icons**; pick one by hand in the icon editor › **Find App Store Icon** |
-| Change the look | **•••** › **Design** |
-| Two widgets at the top (Date & Time, Weather, Favorite Apps) | **•••** › **Design** › **Widgets** › **Show widgets**, then pick Left and Right |
-| Switch between Classic, Glass and Tiles | **•••** › **Design** › **Style** |
-| Edge-to-edge square tiles (no spacing, bigger tap areas) | **•••** › **Design** › Style › **Tiles**, or set the **Spacing** slider yourself |
+| Change the look | **Customize** (sliders button) › **Design** |
+| Two widgets at the top (Date & Time, Weather, Favorite Apps) | **Customize** (sliders button) › **Design** › **Widgets** › **Show widgets**, then pick Left and Right |
+| Switch between Classic, Glass and Tiles | **Customize** (sliders button) › **Design** › **Style** |
+| Edge-to-edge square tiles (no spacing, bigger tap areas) | **Customize** (sliders button) › **Design** › Style › **Tiles**, or set the **Spacing** slider yourself |
 
 ### When an app won't open: use a Shortcut
 

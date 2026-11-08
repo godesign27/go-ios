@@ -1,47 +1,102 @@
 import SwiftUI
 import UIKit
 
-/// Keeps light (white) text readable on any wallpaper, to WCAG AA.
+/// How Go keeps white text readable (WCAG AA, 4.5:1) without dulling the wallpaper.
 ///
-/// Go measures the brightest parts of the background (a built-in wallpaper, your photo, or
-/// the gradient) and works out the least black dimming that brings them down to
-/// `targetLuminance`. At that level, white text at the secondary opacity (85%) on the frosted
-/// Glass cards measures at least 4.5:1. The value was tuned by measuring rendered screenshots
-/// of every preset. Your own "Dim wallpaper" setting still applies when it's stronger.
+/// Instead of dimming the whole screen with black, Go tints only what sits behind text, in a
+/// deep, saturated version of the wallpaper's own color: the glass cards, and a soft fade at
+/// the top of the screen behind the greeting. The wallpaper itself stays at full color.
+struct Legibility: Equatable {
+    /// Rich, deep version of the wallpaper's hue (indigo on Twilight, plum on Blush).
+    var tint: Color = .clear
+    /// The same depth one step along the color wheel, so cards shift gently from `tint` to this.
+    var tint2: Color = .clear
+    /// Opacity of `tint` inside cards.
+    var cardTint: Double = 0
+    /// Opacity of `tint` at the top edge of the screen, fading out by a third of the way down.
+    var headerScrim: Double = 0
+
+    static let none = Legibility()
+}
+
+private struct LegibilityKey: EnvironmentKey {
+    static let defaultValue = Legibility.none
+}
+
+extension EnvironmentValues {
+    var legibility: Legibility {
+        get { self[LegibilityKey.self] }
+        set { self[LegibilityKey.self] = newValue }
+    }
+}
+
+/// Measures the background and works out the `Legibility` tints.
+/// Targets were tuned by measuring rendered screenshots of every preset.
 enum ContrastGuard {
-    /// Highest relative luminance the brightest 10% of the background may keep.
-    static let targetLuminance = 0.055
+    /// Highest luminance the brightest 10% of a card's background may keep under its tint
+    /// (the card's own white frost adds a little on top).
+    static let cardTarget = 0.06
+    /// Same, for the greeting area at the top of the screen (no frost there).
+    static let headerTarget = 0.08
 
-    private static var cache: [String: Double] = [:]
+    typealias RGB = (Double, Double, Double)
 
-    /// Dimming needed under light text for this theme and background image.
-    static func requiredDim(theme: Theme, image: UIImage?, imageKey: String?) -> Double {
-        // Dark text on a light background needs the opposite; those themes are already light.
-        guard Color.luminance(ofHex: theme.labelColorHex) > 0.5 else { return 0 }
-        if let image, let imageKey {
-            if let cached = cache[imageKey] { return cached }
-            let dim = dimFor(brightest: brightestColor(in: image))
-            cache[imageKey] = dim
-            return dim
+    private static var cache: [String: Legibility] = [:]
+
+    static func legibility(theme: Theme, image: UIImage?, imageKey: String?) -> Legibility {
+        // Dark text on a light background is a different case; those themes are already light.
+        guard Color.luminance(ofHex: theme.labelColorHex) > 0.5 else { return .none }
+        let key = imageKey ?? "gradient:\(theme.backgroundTopHex)\(theme.backgroundBottomHex)"
+        if let cached = cache[key] { return cached }
+
+        let stats: (average: RGB, brightest: RGB, brightestTop: RGB)
+        if let image {
+            stats = measure(image)
+        } else {
+            let top = rgb(ofHex: theme.backgroundTopHex), bottom = rgb(ofHex: theme.backgroundBottomHex)
+            let brightest = luminance(top) > luminance(bottom) ? top : bottom
+            stats = (((top.0 + bottom.0) / 2, (top.1 + bottom.1) / 2, (top.2 + bottom.2) / 2), brightest, top)
         }
-        let colors = [theme.backgroundTopHex, theme.backgroundBottomHex].map(rgb(ofHex:))
-        let brightest = colors.max { luminance($0) < luminance($1) } ?? (0, 0, 0)
-        return dimFor(brightest: brightest)
+
+        let deep = deepTone(of: stats.average)
+        let deep2 = deepTone(of: stats.average, hueShift: 0.07)
+        // Enough of the brighter of the two tints to reach the target everywhere on the card.
+        let card = max(tintNeeded(over: stats.brightest, tint: deep, target: cardTarget),
+                       tintNeeded(over: stats.brightest, tint: deep2, target: cardTarget))
+        let result = Legibility(
+            tint: Color(.sRGB, red: deep.0, green: deep.1, blue: deep.2),
+            tint2: Color(.sRGB, red: deep2.0, green: deep2.1, blue: deep2.2),
+            cardTint: card,
+            headerScrim: tintNeeded(over: stats.brightestTop, tint: deep, target: headerTarget)
+        )
+        cache[key] = result
+        return result
     }
 
     // MARK: - Math
 
-    typealias RGB = (Double, Double, Double)
+    /// A rich, jewel-toned version of a color: same hue (optionally shifted), strongly
+    /// saturated, fairly dark. Saturated rather than gray keeps the glass lively.
+    static func deepTone(of c: RGB, hueShift: CGFloat = 0) -> RGB {
+        let ui = UIColor(red: c.0, green: c.1, blue: c.2, alpha: 1)
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        ui.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+        let hue = (h + hueShift).truncatingRemainder(dividingBy: 1)
+        let deep = UIColor(hue: hue, saturation: min(0.95, max(0.8, s * 1.8)), brightness: 0.34, alpha: 1)
+        var r: CGFloat = 0, g: CGFloat = 0, bl: CGFloat = 0
+        deep.getRed(&r, green: &g, blue: &bl, alpha: &a)
+        return (Double(r), Double(g), Double(bl))
+    }
 
-    /// Smallest black overlay (0...0.8) that brings `color` down to the target luminance.
-    static func dimFor(brightest color: RGB) -> Double {
-        var dim = 0.0
-        while dim < 0.8 {
-            let c = (color.0 * (1 - dim), color.1 * (1 - dim), color.2 * (1 - dim))
-            if luminance(c) <= targetLuminance { return dim }
-            dim += 0.01
+    /// Least opacity of `tint` over `color` that brings it down to `target` luminance.
+    static func tintNeeded(over color: RGB, tint: RGB, target: Double) -> Double {
+        var a = 0.0
+        while a < 0.95 {
+            let mixed = (color.0 + (tint.0 - color.0) * a, color.1 + (tint.1 - color.1) * a, color.2 + (tint.2 - color.2) * a)
+            if luminance(mixed) <= target { return a }
+            a += 0.01
         }
-        return 0.8
+        return 0.95
     }
 
     /// WCAG relative luminance of an sRGB color with 0...1 channels.
@@ -58,8 +113,8 @@ enum ContrastGuard {
         return (Double((v >> 16) & 0xFF) / 255, Double((v >> 8) & 0xFF) / 255, Double(v & 0xFF) / 255)
     }
 
-    /// Average color of the brightest 10% of a small downsampled copy of the image.
-    private static func brightestColor(in image: UIImage) -> RGB {
+    /// Average color, brightest 10% overall, and brightest 10% of the top third, from a small copy.
+    private static func measure(_ image: UIImage) -> (average: RGB, brightest: RGB, brightestTop: RGB) {
         let width = 24, height = 48
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         guard
@@ -69,17 +124,27 @@ enum ContrastGuard {
                 space: CGColorSpace(name: CGColorSpace.sRGB)!,
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
             )
-        else { return (1, 1, 1) }
+        else { return ((0.5, 0.5, 0.5), (1, 1, 1), (1, 1, 1)) }
         context.interpolationQuality = .medium
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
-        var colors: [RGB] = []
-        colors.reserveCapacity(width * height)
-        for i in stride(from: 0, to: pixels.count, by: 4) {
-            colors.append((Double(pixels[i]) / 255, Double(pixels[i + 1]) / 255, Double(pixels[i + 2]) / 255))
+        // The buffer's first row is the top of the image.
+        var all: [RGB] = [], top: [RGB] = []
+        for row in 0..<height {
+            for col in 0..<width {
+                let i = (row * width + col) * 4
+                let c: RGB = (Double(pixels[i]) / 255, Double(pixels[i + 1]) / 255, Double(pixels[i + 2]) / 255)
+                all.append(c)
+                if row < height / 3 { top.append(c) }
+            }
         }
-        let top = colors.sorted { luminance($0) > luminance($1) }.prefix(max(1, colors.count / 10))
-        let n = Double(top.count)
-        return (top.reduce(0) { $0 + $1.0 } / n, top.reduce(0) { $0 + $1.1 } / n, top.reduce(0) { $0 + $1.2 } / n)
+        func mean(_ cs: ArraySlice<RGB>) -> RGB {
+            let n = Double(max(cs.count, 1))
+            return (cs.reduce(0) { $0 + $1.0 } / n, cs.reduce(0) { $0 + $1.1 } / n, cs.reduce(0) { $0 + $1.2 } / n)
+        }
+        func brightest(_ cs: [RGB]) -> RGB {
+            mean(cs.sorted { luminance($0) > luminance($1) }.prefix(max(1, cs.count / 10)))
+        }
+        return (mean(all[...]), brightest(all), brightest(top))
     }
 }

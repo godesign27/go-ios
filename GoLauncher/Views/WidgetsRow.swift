@@ -100,7 +100,7 @@ struct WeatherWidget: View {
                         .font(.system(size: 44, weight: .semibold, design: theme.fontStyle.design))
                     Spacer(minLength: 0)
                     Image(systemName: WeatherService.symbol(for: current.code))
-                        .symbolRenderingMode(.multicolor)
+                        .weatherSymbolStyle(theme)
                         .font(.system(size: 20))
                     Text(WeatherService.description(for: current.code))
                         .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
@@ -120,7 +120,7 @@ struct WeatherWidget: View {
     private var message: some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: "cloud.sun.fill")
-                .symbolRenderingMode(.multicolor)
+                .weatherSymbolStyle(theme)
                 .font(.system(size: 26))
             Spacer(minLength: 0)
             switch weather.status {
@@ -131,7 +131,7 @@ struct WeatherWidget: View {
                     .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
                 Button("Allow Location") { weather.requestPermission() }
                     .font(.system(size: 13, weight: .bold))
-                    .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex)))
+                    .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex), label: theme.labelColor, light: theme.hasDarkText))
             case .denied:
                 Text("Location is off for Go")
                     .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
@@ -139,13 +139,13 @@ struct WeatherWidget: View {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }
                 .font(.system(size: 13, weight: .bold))
-                .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex)))
+                .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex), label: theme.labelColor, light: theme.hasDarkText))
             case .failed, .ready:
                 Text("Couldn't load weather")
                     .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
                 Button("Try Again") { weather.retry() }
                     .font(.system(size: 13, weight: .bold))
-                    .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex)))
+                    .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex), label: theme.labelColor, light: theme.hasDarkText))
             }
         }
     }
@@ -216,5 +216,20 @@ struct FavoritesPickerView: View {
         }
         .navigationTitle("Favorite Apps")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+extension View {
+    /// Apple's colored weather symbols draw clouds white, which vanish on light themes.
+    /// There, clouds take the text color (meets the 3:1 contrast for graphics) and the sun
+    /// and rain keep a color accent.
+    @ViewBuilder
+    func weatherSymbolStyle(_ theme: Theme) -> some View {
+        if theme.hasDarkText {
+            self.symbolRenderingMode(.palette)
+                .foregroundStyle(theme.labelColor, Color(hex: "#F59E0B"), Color(hex: "#2563EB"))
+        } else {
+            self.symbolRenderingMode(.multicolor)
+        }
     }
 }

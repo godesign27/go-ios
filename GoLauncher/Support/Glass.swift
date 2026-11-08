@@ -41,9 +41,9 @@ extension View {
     func cardSurface<S: InsettableShape>(in shape: S, theme: Theme) -> some View {
         switch theme.cardMaterial {
         case .frosted:
-            modifier(AtmosphericGlass(shape: shape, tone: Color(hex: theme.toneHex), style: .card))
+            modifier(AtmosphericGlass(shape: shape, tone: Color(hex: theme.toneHex), style: .card, light: theme.hasDarkText))
         case .tone:
-            toneSurface(in: shape, theme: theme)
+            modifier(ToneTint(shape: shape)).toneSurface(in: shape, theme: theme)
         }
     }
 
@@ -164,34 +164,52 @@ enum GlassTokens {
     /// How much of the light frost shows (1 = full system ultra-thin material).
     static let frost = 0.2
     static let shadow = Color(red: 20 / 255, green: 20 / 255, blue: 60 / 255).opacity(0.08)
+
+    // Light glass, for light backgrounds with dark text (Cloud): bright frosted panels,
+    // a navy hairline instead of a white rim, and a soft navy shadow to lift them.
+    static let ink = Color(red: 10 / 255, green: 22 / 255, blue: 51 / 255)
+    static let lightCardFill = 0.72
+    static let lightIconFill = 0.8
+    static let lightButtonFill = 0.95
+    static let lightButtonPressedFill = 0.7
+    static let lightCardBorder = 0.10
+    static let lightButtonBorder = 0.22
+    static let lightFrost = 0.6
+    static let lightShadow = ink.opacity(0.10)
 }
 
 struct AtmosphericGlass<S: InsettableShape>: ViewModifier {
     enum Style { case card, icon, button(pressed: Bool) }
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.legibility) private var legibility
     let shape: S
     /// Background hue, used for the solid Reduce Transparency fill.
     let tone: Color
     var style: Style = .card
+    /// Light glass for light backgrounds with dark text.
+    var light = false
 
     private var fill: Double {
         switch style {
-        case .card: return GlassTokens.cardFill
-        case .icon: return GlassTokens.iconFill
-        case .button(let pressed): return pressed ? GlassTokens.buttonPressedFill : GlassTokens.buttonFill
+        case .card: return light ? GlassTokens.lightCardFill : GlassTokens.cardFill
+        case .icon: return light ? GlassTokens.lightIconFill : GlassTokens.iconFill
+        case .button(let pressed):
+            if light { return pressed ? GlassTokens.lightButtonPressedFill : GlassTokens.lightButtonFill }
+            return pressed ? GlassTokens.buttonPressedFill : GlassTokens.buttonFill
         }
     }
 
-    private var border: Double {
-        if case .icon = style { return GlassTokens.iconBorder }
-        return GlassTokens.cardBorder
+    private var rim: Color {
+        if light { return GlassTokens.ink.opacity(isButton ? GlassTokens.lightButtonBorder : GlassTokens.lightCardBorder) }
+        if case .icon = style { return .white.opacity(GlassTokens.iconBorder) }
+        return .white.opacity(GlassTokens.cardBorder)
     }
 
     func body(content: Content) -> some View {
         content
             // A soft shadow keeps white text readable over the lighter wallpapers.
-            .shadow(color: .black.opacity(isCard && !reduceTransparency ? 0.22 : 0), radius: 2, y: 1)
+            .shadow(color: .black.opacity(isCard && !light && !reduceTransparency ? 0.22 : 0), radius: 2, y: 1)
             .background {
                 ZStack {
                     if reduceTransparency {
@@ -204,18 +222,25 @@ struct AtmosphericGlass<S: InsettableShape>: ViewModifier {
                         // Light frost regardless of dark/light mode, so the wallpaper stays bright.
                         shape.fill(.ultraThinMaterial)
                             .environment(\.colorScheme, .light)
-                            .opacity(GlassTokens.frost)
+                            .opacity(light ? GlassTokens.lightFrost : GlassTokens.frost)
+                        // Tinted glass: the wallpaper's own deep color, as strong as contrast needs.
+                        if isCard {
+                            shape.fill(LinearGradient(
+                                colors: [legibility.tint.opacity(legibility.cardTint), legibility.tint2.opacity(legibility.cardTint)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ))
+                        }
                     }
                     shape.fill(Color.white.opacity(fill))
                 }
-                .shadow(color: isCard ? GlassTokens.shadow : .clear, radius: 12, y: 8)
+                .shadow(color: isCard ? (light ? GlassTokens.lightShadow : GlassTokens.shadow) : .clear, radius: light ? 16 : 12, y: 8)
             }
             .overlay {
                 ZStack {
-                    shape.strokeBorder(Color.white.opacity(border), lineWidth: 1)
+                    shape.strokeBorder(rim, lineWidth: 1)
                     shape.inset(by: 1).strokeBorder(
                         LinearGradient(
-                            colors: [.white.opacity(GlassTokens.topHighlight), .clear],
+                            colors: [.white.opacity(light ? 0.9 : GlassTokens.topHighlight), .clear],
                             startPoint: .top, endPoint: .center
                         ),
                         lineWidth: 1
@@ -240,14 +265,31 @@ struct AtmosphericGlass<S: InsettableShape>: ViewModifier {
 /// rim, and a brighter fill while pressed. No drop shadow.
 struct GlassPillButtonStyle: ButtonStyle {
     var tone: Color = .clear
+    var label: Color = .white
+    var light = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .foregroundStyle(.white)
-            .modifier(AtmosphericGlass(shape: Capsule(), tone: tone, style: .button(pressed: configuration.isPressed)))
+            .foregroundStyle(label)
+            .modifier(AtmosphericGlass(shape: Capsule(), tone: tone, style: .button(pressed: configuration.isPressed), light: light))
             .contentShape(Capsule())
             .animation(.easeOut(duration: 0.18), value: configuration.isPressed)
+    }
+}
+
+/// Classic cards get the same contrast tint as Glass (the wallpaper's own deep color), placed
+/// inside the tinted Liquid Glass, so light wallpapers stay readable without dimming them.
+struct ToneTint<S: InsettableShape>: ViewModifier {
+    @Environment(\.legibility) private var legibility
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let shape: S
+
+    func body(content: Content) -> some View {
+        content.background {
+            // Classic glass is already tinted with the background hue, so it needs less extra.
+            if !reduceTransparency { shape.fill(legibility.tint.opacity(legibility.cardTint * 0.5)) }
+        }
     }
 }
