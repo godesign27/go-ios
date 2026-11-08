@@ -25,8 +25,35 @@ final class LauncherStore: ObservableObject {
         state.apps.filter { $0.groupID == groupID }
     }
 
-    var dockApps: [LauncherApp] {
-        Array(state.apps.filter(\.isDocked).prefix(5))
+    /// Apps you opened most recently, newest first.
+    func recentApps(limit: Int) -> [LauncherApp] {
+        let opened = state.apps.filter { $0.lastLaunched != nil }
+        let sorted = opened.sorted { ($0.lastLaunched ?? .distantPast) > ($1.lastLaunched ?? .distantPast) }
+        return Array(sorted.prefix(limit))
+    }
+
+    /// Apps you open most often.
+    func mostUsedApps(limit: Int) -> [LauncherApp] {
+        let opened = state.apps.filter { $0.launchCount > 0 }
+        let sorted = opened.sorted { $0.launchCount > $1.launchCount }
+        return Array(sorted.prefix(limit))
+    }
+
+    /// Apps you've flagged with "Needs Attention".
+    var attentionApps: [LauncherApp] {
+        state.apps.filter(\.needsAttention)
+    }
+
+    func isSectionCollapsed(_ key: String) -> Bool {
+        state.collapsedSections.contains(key)
+    }
+
+    func toggleSection(_ key: String) {
+        if let index = state.collapsedSections.firstIndex(of: key) {
+            state.collapsedSections.remove(at: index)
+        } else {
+            state.collapsedSections.append(key)
+        }
     }
 
     /// Ranked search: name prefix > word prefix > contains > keywords > fuzzy letters-in-order.
@@ -88,14 +115,18 @@ final class LauncherStore: ObservableObject {
         state.apps.removeAll { $0.id == appID }
     }
 
-    func toggleDock(_ appID: UUID) {
+    func toggleAttention(_ appID: UUID) {
         guard let index = state.apps.firstIndex(where: { $0.id == appID }) else { return }
-        state.apps[index].isDocked.toggle()
+        state.apps[index].needsAttention.toggle()
     }
 
     func recordLaunch(_ appID: UUID) {
         guard let index = state.apps.firstIndex(where: { $0.id == appID }) else { return }
-        state.apps[index].launchCount += 1
+        var app = state.apps[index]
+        app.launchCount += 1
+        app.lastLaunched = Date()
+        app.needsAttention = false
+        state.apps[index] = app
     }
 
     /// Drag-and-drop: the dragged app takes the target's spot (and joins its group).
@@ -242,18 +273,17 @@ final class LauncherStore: ObservableObject {
         let essentials = AppGroup(name: "Essentials")
         let everyday = AppGroup(name: "Everyday")
         let tools = AppGroup(name: "Tools")
+        let ai = AppGroup(name: "AI")
 
-        func make(_ name: String, _ group: AppGroup, docked: Bool = false) -> LauncherApp? {
-            guard var app = AppCatalog.entry(named: name)?.makeApp(groupID: group.id) else { return nil }
-            app.isDocked = docked
-            return app
+        func make(_ name: String, _ group: AppGroup) -> LauncherApp? {
+            AppCatalog.entry(named: name)?.makeApp(groupID: group.id)
         }
 
         let apps: [LauncherApp?] = [
-            make("Phone", essentials, docked: true),
-            make("Messages", essentials, docked: true),
-            make("Safari", essentials, docked: true),
-            make("Music", essentials, docked: true),
+            make("Phone", essentials),
+            make("Messages", essentials),
+            make("Safari", essentials),
+            make("Music", essentials),
             make("Mail", essentials),
             make("Photos", essentials),
             make("Maps", essentials),
@@ -266,8 +296,12 @@ final class LauncherStore: ObservableObject {
             make("Shortcuts", tools),
             make("Files", tools),
             make("App Store", tools),
+            make("ChatGPT", ai),
+            make("Claude", ai),
+            make("Gemini", ai),
+            make("Perplexity", ai),
         ]
 
-        return LauncherState(groups: [essentials, everyday, tools], apps: apps.compactMap { $0 }, theme: Theme())
+        return LauncherState(groups: [essentials, everyday, tools, ai], apps: apps.compactMap { $0 }, theme: Theme())
     }
 }

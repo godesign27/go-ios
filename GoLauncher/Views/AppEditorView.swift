@@ -297,7 +297,7 @@ struct AppEditorView: View {
             Picker("Group", selection: $draft.groupID) {
                 ForEach(store.state.groups) { Text($0.name).tag($0.id) }
             }
-            Toggle("Show in Dock", isOn: $draft.isDocked)
+            Toggle("Needs attention", isOn: $draft.needsAttention)
         }
     }
 

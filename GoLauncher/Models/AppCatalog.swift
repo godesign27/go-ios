@@ -11,6 +11,7 @@ struct CatalogEntry: Identifiable, Hashable {
         case media = "Music & Video"
         case productivity = "Productivity"
         case everyday = "Shopping & Travel"
+        case ai = "AI"
     }
 
     let name: String
@@ -90,6 +91,13 @@ enum AppCatalog {
         CatalogEntry(name: "Google Maps", url: "comgooglemaps://", symbol: "mappin.and.ellipse", colorHex: "#10B981", category: .everyday, keywords: "directions"),
         CatalogEntry(name: "Uber", url: "uber://", symbol: "car.fill", colorHex: "#111827", category: .everyday, keywords: "ride taxi"),
         CatalogEntry(name: "Venmo", url: "venmo://", symbol: "dollarsign.circle.fill", colorHex: "#0EA5E9", category: .everyday, keywords: "pay money"),
+
+        // AI — these links are less established; if one doesn't open, switch the icon to a Shortcut.
+        CatalogEntry(name: "ChatGPT", url: "chatgpt://", symbol: "sparkles", colorHex: "#10A37F", category: .ai, keywords: "ai openai chat gpt"),
+        CatalogEntry(name: "Claude", url: "claude://", symbol: "asterisk", colorHex: "#D97757", category: .ai, keywords: "ai anthropic chat"),
+        CatalogEntry(name: "Gemini", url: "googlegemini://", symbol: "sparkle", colorHex: "#4F7DF3", category: .ai, keywords: "ai google bard"),
+        CatalogEntry(name: "Perplexity", url: "perplexity-app://", symbol: "magnifyingglass.circle.fill", colorHex: "#1F6F78", category: .ai, keywords: "ai search answer"),
+        CatalogEntry(name: "Copilot", url: "ms-copilot://", symbol: "wand.and.stars", colorHex: "#6366F1", category: .ai, keywords: "ai microsoft bing"),
     ]
 
     static func entry(named name: String) -> CatalogEntry? {

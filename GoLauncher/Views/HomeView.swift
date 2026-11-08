@@ -37,11 +37,6 @@ struct HomeView: View {
         }
         .scrollDismissesKeyboard(.immediately)
         .background { WallpaperView(theme: theme) }
-        .safeAreaInset(edge: .bottom) {
-            if query.isEmpty && !searchFocused && !store.dockApps.isEmpty {
-                dock
-            }
-        }
         .preferredColorScheme(theme.isDark ? .dark : .light)
         .animation(.snappy, value: store.state.apps)
         .animation(.snappy, value: store.state.groups)
@@ -170,9 +165,101 @@ struct HomeView: View {
 
     // MARK: - Grouped grid
 
+    /// Recently Used and Most Used first, then your groups, then Needs Attention.
+    @ViewBuilder
     private var groupsContent: some View {
+        smartSection(.recent, apps: store.recentApps(limit: theme.columns))
+        smartSection(.mostUsed, apps: store.mostUsedApps(limit: theme.columns))
         ForEach(store.state.groups) { group in
             groupSection(group)
+        }
+        smartSection(.attention, apps: store.attentionApps)
+    }
+
+    // MARK: - Automatic sections
+
+    enum SmartSection: String {
+        case recent, mostUsed, attention
+
+        var title: String {
+            switch self {
+            case .recent: return "Recently Used"
+            case .mostUsed: return "Most Used"
+            case .attention: return "Needs Attention"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .recent: return "clock.arrow.circlepath"
+            case .mostUsed: return "flame.fill"
+            case .attention: return "flag.fill"
+            }
+        }
+
+        var emptyText: String {
+            switch self {
+            case .recent, .mostUsed: return "Apps you open from Go will show up here."
+            case .attention: return "Long-press an app and choose Needs Attention to flag it here."
+            }
+        }
+    }
+
+    private func smartSection(_ kind: SmartSection, apps: [LauncherApp]) -> some View {
+        let collapsed = store.isSectionCollapsed(kind.rawValue)
+        return VStack(alignment: .leading, spacing: 12) {
+            Button {
+                store.toggleSection(kind.rawValue)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: kind.symbol)
+                        .font(.system(size: 12, weight: .bold))
+                        .opacity(0.75)
+                    Text(kind.title)
+                        .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
+                    if (collapsed || kind == .attention) && !apps.isEmpty {
+                        Text("\(apps.count)")
+                            .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
+                            .opacity(0.6)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .rotationEffect(.degrees(collapsed ? -90 : 0))
+                        .opacity(0.6)
+                }
+                .foregroundStyle(theme.labelColor)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if !collapsed {
+                if apps.isEmpty {
+                    Text(kind.emptyText)
+                        .font(.footnote)
+                        .foregroundStyle(theme.labelColor.opacity(0.6))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(apps) { app in
+                            Button {
+                                if isEditing { activeSheet = .edit(app) } else { launch(app) }
+                            } label: {
+                                AppIconView(app: app, theme: theme)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu { contextMenu(for: app) }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(theme.showGroupCards ? 14 : 4)
+        .background {
+            if theme.showGroupCards {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
         }
     }
 
@@ -294,8 +381,9 @@ struct HomeView: View {
     @ViewBuilder
     private func contextMenu(for app: LauncherApp) -> some View {
         Button { activeSheet = .edit(app) } label: { Label("Edit Icon", systemImage: "pencil") }
-        Button { store.toggleDock(app.id) } label: {
-            Label(app.isDocked ? "Remove from Dock" : "Add to Dock", systemImage: "dock.rectangle")
+        Button { store.toggleAttention(app.id) } label: {
+            Label(app.needsAttention ? "Clear Needs Attention" : "Needs Attention",
+                  systemImage: app.needsAttention ? "flag.slash" : "flag")
         }
         Menu {
             ForEach(store.state.groups) { group in
@@ -362,26 +450,6 @@ struct HomeView: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(theme.labelColor)
-    }
-
-    // MARK: - Dock
-
-    private var dock: some View {
-        HStack(spacing: 0) {
-            ForEach(store.dockApps) { app in
-                Button { launch(app) } label: {
-                    AppIconView(app: app, theme: theme, showLabel: false)
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .contextMenu { contextMenu(for: app) }
-            }
-        }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
-        .padding(.horizontal, 12)
-        .padding(.bottom, 4)
     }
 
     // MARK: - Sheets

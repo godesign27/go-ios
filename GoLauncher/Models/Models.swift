@@ -46,10 +46,12 @@ struct LauncherApp: Identifiable, Codable, Hashable {
     var secondaryColorHex: String?
     var glyphColorHex: String = "#FFFFFF"
     var groupID: UUID
-    var isDocked = false
+    /// Flagged by you to show in the "Needs Attention" section. Cleared when you open the app.
+    var needsAttention = false
     /// Extra words that should match in search (e.g. "chat" for Messages).
     var keywords: String = ""
     var launchCount = 0
+    var lastLaunched: Date?
 
     static func blank(groupID: UUID) -> LauncherApp {
         LauncherApp(
@@ -74,4 +76,6 @@ struct LauncherState: Codable {
     /// Order in this array is the display order within each group.
     var apps: [LauncherApp]
     var theme: Theme
+    /// Keys of collapsed automatic sections ("recent", "mostUsed", "attention").
+    var collapsedSections: [String] = []
 }
