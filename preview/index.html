@@ -538,11 +538,20 @@ body {
     content.className = (t.showGroupCards ? "cards " : "") + (editing ? "editing" : "");
     {
       const rowsMode = t.sectionLayout !== "grid";
-      const rowsFor = key => key === "recent" ? 2 : 1;
+      const rowsFor = key => key === "recent" || key === "favorites" ? 2 : 1;
       // Rows mode: a swipeable strip; Grid mode: every app in a wrapping grid.
-      const layout = (key, cells) => rowsMode
-        ? `<div class="strip" style="--rows:${rowsFor(key)}">${cells}</div>`
-        : `<div class="grid">${cells}</div>`;
+      // Two-row strips fill each screenful's top row first, so a short list stays one tidy row.
+      const layout = (key, cells) => {
+        if (!rowsMode) return `<div class="grid">${cells.join("")}</div>`;
+        const rows = rowsFor(key), cols = t.columns, page = cols * rows;
+        if (rows === 1 || cells.length <= cols) return `<div class="strip" style="--rows:1">${cells.join("")}</div>`;
+        const ordered = [];
+        for (let p0 = 0; p0 < cells.length; p0 += page) {
+          const n = Math.min(page, cells.length - p0);
+          for (let c = 0; c < Math.min(cols, n); c++) for (let r = 0; r < rows; r++) { const i = p0 + r * cols + c; ordered.push(i < p0 + n ? cells[i] : "<span></span>"); }
+        }
+        return `<div class="strip" style="--rows:${rows}">${ordered.join("")}</div>`;
+      };
       const head = (key, title, icon, count, collapsed, act, dataAttr, overflow) => `<div class="ghead-row">
           <button class="ghead ${collapsed ? "collapsed" : ""}" type="button" data-act="${act}" ${dataAttr}>${icon ? `<i class="sicon" data-lucide="${icon}"></i>` : ""}${title}${count != null ? `<span class="count">${count}</span>` : ""}</button>
           ${overflow && rowsMode && !collapsed ? `<button class="view-all" type="button" data-act="view-all" data-key="${key}">View All</button>` : ""}
@@ -552,14 +561,14 @@ body {
         const overflow = apps.length > t.columns * rowsFor(key);
         const count = (collapsed || key === "attention" || key === "favorites") && apps.length ? apps.length : null;
         return `<section class="group smart">${head(key, title, icon, count, collapsed, "smart-collapse", `data-key="${key}"`, overflow)}
-          ${collapsed ? "" : apps.length ? layout(key, apps.map(a => cellHTML(a, false, true)).join("")) : `<div class="empty" style="text-align:left">${empty}</div>`}
+          ${collapsed ? "" : apps.length ? layout(key, apps.map(a => cellHTML(a, false, true))) : `<div class="empty" style="text-align:left">${empty}</div>`}
         </section>`;
       };
       const groupHTML = g => {
         const apps = appsIn(g.id), overflow = apps.length > t.columns;
         const addTile = editing ? `<button class="cell addtile" type="button" data-act="add" data-gid="${g.id}"><span class="tile"><i data-lucide="plus"></i></span>${t.showLabels ? '<span class="label">Add</span>' : ""}</button>` : "";
         return `<section class="group">${head(g.id, esc(g.name), null, g.isCollapsed || (rowsMode && overflow) ? apps.length : null, g.isCollapsed, "collapse", `data-gid="${g.id}"`, overflow)}
-          ${g.isCollapsed ? "" : layout(g.id, apps.map(a => cellHTML(a, editing)).join("") + addTile)
+          ${g.isCollapsed ? "" : layout(g.id, [...apps.map(a => cellHTML(a, editing)), ...(addTile ? [addTile] : [])])
           + (!apps.length && !editing ? `<div class="empty">Empty. Drag apps here, or use ••• › Edit Layout.</div>` : "")}
         </section>`;
       };

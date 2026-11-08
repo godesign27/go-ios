@@ -260,9 +260,30 @@ struct HomeView: View {
 
     private var usesRows: Bool { theme.sectionLayout == .rows }
 
-    /// Rows shown for a section before swiping (Recently Used gets two).
+    /// Rows shown for a section before swiping (Recently Used and Favorites get two).
     private func rowCount(for key: String) -> Int {
-        key == SmartSection.recent.rawValue ? 2 : 1
+        key == SmartSection.recent.rawValue || key == SmartSection.favorites.rawValue ? 2 : 1
+    }
+
+    /// Splits a strip into columns, page by page: each screenful fills its top row first,
+    /// so a short list stays one tidy row instead of a lopsided block.
+    private func stripColumns(count: Int, rows: Int) -> [[Int]] {
+        guard rows > 1 else { return (0..<count).map { [$0] } }
+        let cols = max(theme.columns, 1)
+        let pageSize = cols * rows
+        var result: [[Int]] = []
+        var pageStart = 0
+        while pageStart < count {
+            let pageCount = min(pageSize, count - pageStart)
+            for column in 0..<min(cols, pageCount) {
+                let indices = (0..<rows)
+                    .map { pageStart + $0 * cols + column }
+                    .filter { $0 < pageStart + pageCount }
+                result.append(indices)
+            }
+            pageStart += pageSize
+        }
+        return result
     }
 
     /// How many apps fit without swiping or "View All".
@@ -298,14 +319,13 @@ struct HomeView: View {
         cell: @escaping (LauncherApp) -> Cell
     ) -> some View {
         if usesRows {
-            // Column-by-column chunks so 2-row sections fill top then bottom.
-            let starts = Array(stride(from: 0, to: apps.count, by: max(rows, 1)))
+            let stripColumns = stripColumns(count: apps.count, rows: rows)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: theme.iconSpacing) {
-                    ForEach(starts, id: \.self) { start in
+                    ForEach(Array(stripColumns.enumerated()), id: \.offset) { _, column in
                         VStack(spacing: theme.rowSpacing) {
-                            ForEach(apps[start..<min(start + rows, apps.count)]) { app in
-                                cell(app)
+                            ForEach(column, id: \.self) { index in
+                                cell(apps[index])
                             }
                         }
                         .frame(maxHeight: .infinity, alignment: .top)
