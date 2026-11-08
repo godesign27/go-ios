@@ -1,0 +1,739 @@
+<title>Go Launcher Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,750&family=JetBrains+Mono:wght@500;700&family=Newsreader:opsz,wght@6..72,500;6..72,700&family=Nunito:wght@500;600;700;800&display=swap">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: a short brief on the left, a working phone on the right; stacks on narrow screens. */
+:root {
+  --page-bg: #ECEBF3;
+  --page-fg: #1B1A2E;
+  --muted: #5E5C78;
+  --line: #D3D1E2;
+  --accent: #5B4FD9;
+  --frame: #15141F;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: #0E0D16; --page-fg: #ECEAF8; --muted: #9C99B8; --line: #2A2840; --accent: #9C92FF; --frame: #000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg: #0E0D16; --page-fg: #ECEAF8; --muted: #9C99B8; --line: #2A2840; --accent: #9C92FF; --frame: #000;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  background: var(--page-bg); color: var(--page-fg); font-family: var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px;
+}
+.wrap {
+  max-width: 980px; margin: 0 auto; display: grid; gap: 40px; align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 390px);
+}
+@media (max-width: 820px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; justify-items: center; } .brief { max-width: 430px; } }
+.brief { min-width: 0; }
+.brief .eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.brief h1 { font: 750 clamp(40px, 6vw, 60px)/.95 var(--display); letter-spacing: -.02em; margin: 12px 0 14px; text-wrap: balance; }
+.brief p { color: var(--muted); line-height: 1.55; font-size: 15px; max-width: 42ch; margin: 0 0 18px; }
+.tips { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 18px; }
+.tips li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; font-size: 14px; line-height: 1.4; }
+.tips b { font: 700 11px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--page-fg); }
+.tips span { color: var(--muted); }
+.brief .reset { margin-top: 20px; background: none; border: 1px solid var(--line); color: var(--muted); font: 500 13px var(--body); padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+.brief .reset:hover { color: var(--page-fg); border-color: var(--muted); }
+
+/* ---------- Phone ---------- */
+.phone {
+  width: 100%; max-width: 390px; justify-self: center; height: clamp(660px, 88vh, 844px); border-radius: 54px; padding: 11px;
+  background: var(--frame); box-shadow: 0 30px 80px -30px rgba(20, 16, 60, .55), inset 0 0 0 2px #2c2b38;
+  position: relative; flex: none;
+}
+.screen {
+  --sheet-bg: #1C1C1E; --row: #2C2C2E; --row-fg: #fff; --row-muted: #8E8E93; --sep: #3A3A3C; --tint: #0A84FF; --danger: #FF453A;
+  position: relative; width: 100%; height: 100%; border-radius: 44px; overflow: hidden; isolation: isolate;
+  background: linear-gradient(var(--bg-top), var(--bg-bottom));
+  font-family: var(--app-font); color: var(--label);
+}
+.screen.light { --sheet-bg: #F2F2F7; --row: #FFFFFF; --row-fg: #000; --row-muted: #6C6C70; --sep: #D8D8DC; --tint: #007AFF; --danger: #FF3B30; }
+.wallpaper { position: absolute; inset: 0; z-index: -1; background: linear-gradient(var(--bg-top), var(--bg-bottom)); }
+.island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 120px; height: 34px; background: #000; border-radius: 20px; z-index: 30; }
+.status { position: absolute; top: 0; left: 0; right: 0; height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 6px 30px 0 38px; z-index: 25; font: 600 16px var(--body); color: var(--label); }
+.status .r { display: flex; gap: 6px; align-items: center; }
+.status svg { width: 17px; height: 17px; }
+.scroll { position: absolute; inset: 0; overflow-y: auto; padding: 58px 16px 130px; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin: 4px 0 16px; text-shadow: var(--label-shadow); }
+.date { font-size: 15px; font-weight: 700; opacity: .8; }
+.time { font-size: 46px; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.round-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; color: var(--label); background: var(--material); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.round-btn svg { width: 20px; height: 20px; }
+.done-btn { border: 0; cursor: pointer; font: 700 16px var(--app-font); color: var(--label); background: var(--material); backdrop-filter: blur(20px); padding: 9px 16px; border-radius: 999px; }
+
+.searchrow { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; }
+.searchbar { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 11px 12px; border-radius: 14px; background: var(--material); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.searchbar svg { width: 18px; height: 18px; opacity: .6; flex: none; }
+.searchbar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: 500 16px var(--app-font); color: var(--label); }
+.searchbar input::placeholder { color: var(--label); opacity: .55; }
+.clear-q { border: 0; background: none; color: var(--label); opacity: .55; cursor: pointer; padding: 0; display: grid; }
+.cancel-q { border: 0; background: none; color: var(--label); font: 500 16px var(--app-font); cursor: pointer; padding: 0; }
+
+.group { margin-bottom: 14px; border-radius: 24px; padding: 4px; }
+.cards .group { padding: 14px; background: var(--material); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.ghead { display: flex; align-items: center; gap: 6px; width: 100%; border: 0; background: none; color: var(--label); cursor: pointer; padding: 0; font: 700 15px var(--app-font); text-shadow: var(--label-shadow); }
+.ghead .count { font-size: 13px; font-weight: 600; opacity: .6; }
+.ghead .chev { margin-left: auto; width: 14px; height: 14px; opacity: .6; transition: transform .2s; }
+.ghead.collapsed .chev { transform: rotate(-90deg); }
+.ghead.drop-over { opacity: .6; }
+.grid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 16px 10px; margin-top: 12px; }
+.empty { font-size: 13px; opacity: .6; text-align: center; padding: 12px 0 4px; }
+
+.cell { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: none; padding: 0; cursor: pointer; color: var(--label); position: relative; min-width: 0; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.cell:focus-visible { outline: 2px solid var(--label); outline-offset: 4px; border-radius: 12px; }
+.tile {
+  width: min(var(--icon), 100%); aspect-ratio: 1; border-radius: calc(var(--corner) * 100%); display: grid; place-items: center;
+  container-type: inline-size; position: relative; overflow: hidden; flex: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18), inset 0 0 0 .5px rgba(255, 255, 255, .1);
+  transition: transform .12s;
+}
+.cell:active .tile { transform: scale(.92); }
+.tile svg { width: 46%; height: 46%; stroke-width: 2.2; }
+.tile .emoji { font-size: 56cqw; line-height: 1; }
+.tile .letter { font: 800 40cqw/1 var(--app-font); }
+.label { font-size: 12px; font-weight: 600; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: var(--label-shadow); }
+.editing .cell .tile { animation: wiggle .26s ease-in-out infinite alternate; }
+.editing .cell:nth-child(2n) .tile { animation-delay: -.13s; }
+@keyframes wiggle { from { transform: rotate(-1.8deg); } to { transform: rotate(1.8deg); } }
+@media (prefers-reduced-motion: reduce) { .editing .cell .tile { animation: none; } }
+.minus { position: absolute; top: -6px; left: calc(50% - min(var(--icon), 100%) / 2 - 6px); width: 22px; height: 22px; border-radius: 50%; background: #8E8E93; color: #fff; display: grid; place-items: center; border: 0; cursor: pointer; z-index: 2; font: 800 16px/1 var(--body); padding: 0; }
+.addtile .tile { box-shadow: none; border: 1.5px dashed var(--label); opacity: .7; background: transparent; }
+.cell.drop-over .tile { outline: 2px solid var(--label); outline-offset: 3px; }
+
+.web-btn { width: 100%; border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 14px; color: var(--label); background: var(--material); backdrop-filter: blur(20px); font: 600 14px var(--app-font); margin-top: 12px; }
+.web-btn svg { width: 16px; height: 16px; }
+.hint { text-align: center; font-size: 12px; opacity: .6; margin-top: 10px; }
+
+.dock { position: absolute; left: 12px; right: 12px; bottom: 16px; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 14px 8px; border-radius: 32px; background: var(--material); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); z-index: 5; }
+.dock .tile { width: min(var(--icon), 64px); }
+.homebar { position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--label); opacity: .7; z-index: 6; }
+
+/* Menu popover */
+.menu { position: absolute; top: 108px; right: 16px; width: 210px; border-radius: 14px; overflow: hidden; z-index: 40; background: var(--row); color: var(--row-fg); box-shadow: 0 18px 50px rgba(0, 0, 0, .35); font-family: var(--body); transform-origin: top right; animation: pop .16s ease-out; }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } }
+.menu button, .sheet-actions button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px; border: 0; background: none; color: inherit; font: 400 16px var(--body); cursor: pointer; text-align: left; }
+.menu button + button, .sheet-actions button + button { border-top: .5px solid var(--sep); }
+.menu button:hover, .sheet-actions button:hover { background: rgba(127, 127, 127, .12); }
+.menu svg, .sheet-actions svg { width: 18px; height: 18px; }
+.danger { color: var(--danger) !important; }
+
+/* Scrim, sheets, toast */
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, .35); z-index: 35; animation: fade .2s; }
+.scrim.clear { background: transparent; }
+@keyframes fade { from { opacity: 0; } }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 92%; z-index: 45; background: var(--sheet-bg); color: var(--row-fg); border-radius: 14px 14px 0 0; display: flex; flex-direction: column; font-family: var(--body); animation: up .28s cubic-bezier(.2, .9, .3, 1); box-shadow: 0 -10px 40px rgba(0, 0, 0, .3); }
+.sheet.half { height: 56%; }
+.sheet.actions { height: auto; background: transparent; box-shadow: none; padding: 0 8px 26px; gap: 8px; }
+@keyframes up { from { transform: translateY(100%); } }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--row-muted); opacity: .5; margin: 6px auto 0; flex: none; }
+.navbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 10px 16px 8px; flex: none; }
+.navbar h2 { margin: 0; font: 600 17px var(--body); }
+.navbar .l { justify-self: start; } .navbar .r { justify-self: end; }
+.link { border: 0; background: none; color: var(--tint); font: 400 17px var(--body); cursor: pointer; padding: 0; }
+.link.bold { font-weight: 600; }
+.link:disabled { opacity: .35; cursor: default; }
+.form { overflow-y: auto; padding: 4px 16px 40px; flex: 1; }
+.sec-title { font-size: 13px; text-transform: uppercase; color: var(--row-muted); margin: 18px 16px 6px; letter-spacing: .02em; }
+.sec-foot { font-size: 13px; color: var(--row-muted); margin: 6px 16px 0; line-height: 1.35; }
+.box { background: var(--row); border-radius: 10px; overflow: hidden; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 16px; min-height: 44px; font-size: 16px; }
+.row + .row { border-top: .5px solid var(--sep); }
+.row input[type="text"], .row input[type="search"], .row select { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: 400 16px var(--body); color: var(--row-fg); }
+.row select { text-align: right; color: var(--row-muted); cursor: pointer; }
+.row input::placeholder { color: var(--row-muted); }
+.row.col { flex-direction: column; align-items: stretch; gap: 8px; }
+.row .val { color: var(--row-muted); }
+.row input[type="range"] { width: 100%; accent-color: var(--tint); }
+.row input[type="color"] { width: 30px; height: 30px; border: 0; padding: 0; background: none; border-radius: 50%; cursor: pointer; }
+.row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.row input[type="color"]::-webkit-color-swatch { border: 1px solid var(--sep); border-radius: 50%; }
+.row button.rowbtn { border: 0; background: none; color: var(--tint); font: 400 16px var(--body); cursor: pointer; padding: 0; text-align: left; display: flex; align-items: center; gap: 8px; flex: 1; }
+.row button.rowbtn svg { width: 18px; height: 18px; }
+.switch { position: relative; width: 51px; height: 31px; flex: none; }
+.switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch span { position: absolute; inset: 0; border-radius: 16px; background: rgba(120, 120, 128, .32); transition: background .2s; }
+.switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, .2); transition: transform .2s; }
+.switch input:checked + span { background: #34C759; }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 2px solid var(--tint); outline-offset: 2px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: rgba(120, 120, 128, .2); border-radius: 9px; padding: 2px; width: 100%; }
+.seg button { border: 0; background: none; color: var(--row-fg); font: 500 13px var(--body); padding: 6px; border-radius: 7px; cursor: pointer; }
+.seg button.on { background: var(--row); box-shadow: 0 2px 6px rgba(0, 0, 0, .15); }
+.screen:not(.light) .seg button.on { background: #636366; }
+.stepper { display: flex; border-radius: 8px; overflow: hidden; background: rgba(120, 120, 128, .2); }
+.stepper button { border: 0; background: none; color: var(--row-fg); width: 46px; height: 30px; font-size: 18px; cursor: pointer; }
+.stepper button + button { border-left: .5px solid var(--sep); }
+.preview-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 0 4px; --icon: 96px; }
+.preview-tile .label { color: var(--row-muted); text-shadow: none; font-family: var(--app-font); }
+.swatches { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; }
+.swatches button { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--sep); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.swatches button.on::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, .35); }
+.symbols { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 8px; max-height: 196px; overflow-y: auto; }
+.symbols button { aspect-ratio: 1; border: 0; border-radius: 10px; background: rgba(120, 120, 128, .14); color: var(--row-fg); cursor: pointer; display: grid; place-items: center; }
+.symbols button.on { background: color-mix(in srgb, var(--tint) 28%, transparent); color: var(--tint); }
+.symbols svg { width: 20px; height: 20px; }
+.presets { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 6px; scrollbar-width: none; }
+.preset { border: 0; background: none; cursor: pointer; color: var(--row-fg); display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; padding: 0; }
+.preset .sw { width: 64px; height: 88px; border-radius: 14px; display: grid; grid-template-columns: 16px 16px; gap: 6px; place-content: center; border: 1px solid var(--sep); }
+.preset .sw i { width: 16px; height: 16px; display: block; }
+.preset.on .sw { outline: 2.5px solid var(--tint); outline-offset: 2px; }
+.cat-row { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; color: var(--row-fg); font: 400 16px var(--body); padding: 9px 16px; cursor: pointer; text-align: left; }
+.cat-row + .cat-row { border-top: .5px solid var(--sep); }
+.cat-row .mini { --icon: 34px; width: 34px; }
+.cat-row .added { margin-left: auto; font-size: 12px; color: var(--row-muted); }
+.cat-row .chev { margin-left: auto; width: 16px; height: 16px; color: var(--row-muted); }
+.cat-row .added + .chev { margin-left: 8px; }
+.cat-row.tint { color: var(--tint); }
+.cat-row.tint svg { width: 22px; height: 22px; }
+.gbtn { border: 0; background: none; color: var(--row-muted); cursor: pointer; padding: 4px; display: grid; }
+.gbtn svg { width: 18px; height: 18px; }
+.gbtn.del { color: var(--danger); }
+.gbtn:disabled { opacity: .3; cursor: default; }
+.act-box { background: var(--row); color: var(--row-fg); border-radius: 14px; overflow: hidden; }
+.act-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: .5px solid var(--sep); --icon: 44px; }
+.act-head .tile { width: 44px; }
+.act-head b { font-size: 16px; font-weight: 600; display: block; }
+.act-head small { color: var(--row-muted); font: 12px var(--mono); }
+.act-msg { padding: 14px 16px; font-size: 14px; color: var(--row-muted); text-align: center; border-bottom: .5px solid var(--sep); }
+.act-cancel { text-align: center; justify-content: center !important; font-weight: 600 !important; color: var(--tint) !important; }
+.toast { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); z-index: 60; background: rgba(28, 28, 30, .92); color: #fff; font: 500 13px/1.35 var(--body); padding: 10px 14px; border-radius: 16px; width: max-content; max-width: calc(100% - 40px); text-align: center; animation: drop .25s ease-out; backdrop-filter: blur(10px); }
+.toast code { font-family: var(--mono); font-size: 12px; opacity: .75; }
+@keyframes drop { from { transform: translate(-50%, -20px); opacity: 0; } }
+</style>
+
+<div class="wrap">
+  <section class="brief">
+    <div class="eyebrow">Interactive preview · iOS 17</div>
+    <h1>Go</h1>
+    <p>Your own iPhone home screen, with custom icons, your own groups, and search that opens apps as you type. This page copies the SwiftUI app's screens so you can try them. Tapping an app shows what it would open on your phone.</p>
+    <ul class="tips">
+      <li><b>Open</b><span>Tap an icon, or type in search and press Enter.</span></li>
+      <li><b>Customize</b><span>Long-press or right-click an icon to edit it, dock it, or move it.</span></li>
+      <li><b>Menu</b><span>The ••• button has Add App, Edit Layout, Groups and Design.</span></li>
+      <li><b>Rearrange</b><span>In Edit Layout, drag an icon onto another icon or onto a group title.</span></li>
+    </ul>
+    <button class="reset" id="resetAll" type="button">Reset preview</button>
+  </section>
+
+  <div class="phone" aria-label="iPhone preview">
+    <div class="screen" id="screen">
+      <div class="wallpaper"></div>
+      <div class="island"></div>
+      <div class="status"><span id="sbTime">9:41</span><span class="r"><i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+      <div class="scroll" id="scroll">
+        <div class="header">
+          <div id="clock"><div class="date" id="dateText"></div><div class="time" id="timeText"></div></div>
+          <div id="headBtn"></div>
+        </div>
+        <div class="searchrow">
+          <label class="searchbar"><i data-lucide="search"></i>
+            <input id="q" type="text" placeholder="Search apps" autocomplete="off" enterkeyhint="go" aria-label="Search apps">
+            <button class="clear-q" id="clearQ" type="button" hidden aria-label="Clear search"><i data-lucide="circle-x"></i></button>
+          </label>
+          <button class="cancel-q" id="cancelQ" type="button" hidden>Cancel</button>
+        </div>
+        <div id="content"></div>
+      </div>
+      <div id="dock"></div>
+      <div class="homebar"></div>
+      <div id="overlay"></div>
+      <div id="toastHost"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Data (mirrors the Swift app) ----------
+  const CATALOG = [
+    ["Phone","tel:","phone","#22C55E","Apple","call dial"],["Messages","sms:","message-circle","#22C55E","Apple","text chat imessage sms"],
+    ["Mail","message://","mail","#3B82F6","Apple","email inbox"],["Safari","x-web-search://","compass","#0EA5E9","Apple","web browser internet"],
+    ["Music","music://","music","#F43F5E","Apple","songs"],["Photos","photos-redirect://","images","#F59E0B","Apple","pictures gallery"],
+    ["Maps","maps://","map","#10B981","Apple","directions navigation"],["Calendar","calshow://","calendar","#EF4444","Apple","events schedule"],
+    ["Notes","mobilenotes://","notebook-pen","#EAB308","Apple",""],["Reminders","x-apple-reminderkit://","list-checks","#F97316","Apple","todo tasks"],
+    ["Weather","weather://","cloud-sun","#38BDF8","Apple",""],["Podcasts","podcasts://","podcast","#A855F7","Apple",""],
+    ["Books","ibooks://","book-open","#F97316","Apple","read"],["Files","shareddocuments://","folder","#3B82F6","Apple","documents"],
+    ["Wallet","shoebox://","wallet","#111827","Apple","cards pay"],["Health","x-apple-health://","heart","#EC4899","Apple","fitness steps"],
+    ["App Store","itms-apps://","shopping-bag","#0EA5E9","Apple","download"],["Shortcuts","shortcuts://","layers","#6366F1","Apple","automation"],
+    ["Settings","App-prefs:","settings","#78716C","Apple","preferences wifi bluetooth"],
+    ["Instagram","instagram://","camera","#D946EF","Social & Messaging","ig insta"],["WhatsApp","whatsapp://","messages-square","#22C55E","Social & Messaging","chat"],
+    ["Messenger","fb-messenger://","message-square","#6366F1","Social & Messaging","chat facebook"],["Facebook","fb://","users","#3B82F6","Social & Messaging","fb"],
+    ["X","twitter://","at-sign","#111827","Social & Messaging","twitter"],["Threads","barcelona://","at-sign","#111827","Social & Messaging",""],
+    ["TikTok","snssdk1233://","clapperboard","#111827","Social & Messaging",""],["Snapchat","snapchat://","scan","#EAB308","Social & Messaging","snap"],
+    ["Telegram","tg://","send","#0EA5E9","Social & Messaging","chat"],["Discord","discord://","gamepad-2","#6366F1","Social & Messaging","chat"],
+    ["Reddit","reddit://","message-square-text","#F97316","Social & Messaging",""],["Pinterest","pinterest://","pin","#EF4444","Social & Messaging",""],
+    ["LinkedIn","linkedin://","briefcase","#0369A1","Social & Messaging","jobs"],
+    ["Spotify","spotify://","list-music","#22C55E","Music & Video","music"],["YouTube","youtube://","square-play","#EF4444","Music & Video","video"],
+    ["Netflix","nflx://","tv","#B91C1C","Music & Video","movies shows"],
+    ["Gmail","googlegmail://","mail-open","#EF4444","Productivity","email google"],["Outlook","ms-outlook://","inbox","#0369A1","Productivity","email microsoft"],
+    ["Chrome","googlechrome://","globe","#F59E0B","Productivity","browser google"],["Slack","slack://","hash","#A855F7","Productivity","chat work"],
+    ["Teams","msteams://","users-round","#6366F1","Productivity","microsoft work"],["Zoom","zoomus://","video","#3B82F6","Productivity","meeting call"],
+    ["Notion","notion://","file-text","#111827","Productivity","notes docs"],
+    ["Google Maps","comgooglemaps://","map-pin","#10B981","Shopping & Travel","directions"],["Uber","uber://","car","#111827","Shopping & Travel","ride taxi"],
+    ["Venmo","venmo://","circle-dollar-sign","#0EA5E9","Shopping & Travel","pay money"],
+  ].map(([name, url, icon, color, cat, kw]) => ({ name, url, icon, color, cat, kw }));
+  const CATS = ["Apple", "Social & Messaging", "Music & Video", "Productivity", "Shopping & Travel"];
+  const SYMBOLS = ["star","heart","zap","flame","leaf","droplet","sparkles","moon","sun","cloud-sun","snowflake","globe","compass","phone","message-circle","mail","send","users","house","music","headphones","mic","radio","play","tv","film","camera","image","palette","pencil","book-open","newspaper","file-text","list-checks","calendar","clock","alarm-clock","timer","folder","inbox","map","map-pin","car","bus","plane","bike","dumbbell","gamepad-2","puzzle","shopping-cart","shopping-bag","credit-card","wallet","gift","utensils","coffee","wine","cake","paw-print","briefcase","graduation-cap","lightbulb","brain","pill","bed","settings","wrench","hammer","lock","key","wifi","layers","hash","terminal","cpu","search","bell","flag","bookmark"];
+  const SWATCHES = ["#EF4444","#F97316","#F59E0B","#EAB308","#84CC16","#22C55E","#10B981","#14B8A6","#06B6D4","#0EA5E9","#3B82F6","#6366F1","#7C6AF4","#A855F7","#D946EF","#EC4899","#F43F5E","#78716C","#334155","#111827","#FFFFFF","#F5F0E6"];
+  const FONTS = {
+    standard: ['Standard', '-apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif'],
+    rounded: ['Rounded', '"Nunito", ui-rounded, "SF Pro Rounded", system-ui, sans-serif'],
+    serif: ['Serif', '"Newsreader", "New York", Georgia, serif'],
+    mono: ['Mono', '"JetBrains Mono", ui-monospace, Menlo, monospace'],
+  };
+  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true };
+  const PRESETS = [
+    ["Midnight", { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, labelColorHex: "#FFFFFF", uniformIconColors: false, fontStyle: "rounded", cornerFactor: .24 }],
+    ["Sunset", { backgroundTopHex: "#F97316", backgroundBottomHex: "#BE185D", isDark: true, labelColorHex: "#FFFFFF", uniformIconColors: true, uniformIconHex: "#FFFFFF40", uniformGlyphHex: "#FFFFFF", fontStyle: "rounded", cornerFactor: .5 }],
+    ["Ocean", { backgroundTopHex: "#0EA5E9", backgroundBottomHex: "#1E3A8A", isDark: true, labelColorHex: "#FFFFFF", uniformIconColors: false, fontStyle: "standard", cornerFactor: .24 }],
+    ["Mint", { backgroundTopHex: "#ECFDF5", backgroundBottomHex: "#A7F3D0", isDark: false, labelColorHex: "#064E3B", uniformIconColors: true, uniformIconHex: "#FFFFFF", uniformGlyphHex: "#047857", fontStyle: "rounded", cornerFactor: .3 }],
+    ["Paper", { backgroundTopHex: "#F5F0E6", backgroundBottomHex: "#E7DCC8", isDark: false, labelColorHex: "#3B3024", uniformIconColors: true, uniformIconHex: "#FFFDF8", uniformGlyphHex: "#3B3024", fontStyle: "serif", cornerFactor: .18 }],
+    ["Mono", { backgroundTopHex: "#111111", backgroundBottomHex: "#000000", isDark: true, labelColorHex: "#E5E5E5", uniformIconColors: true, uniformIconHex: "#1F1F1F", uniformGlyphHex: "#FFFFFF", fontStyle: "mono", cornerFactor: .12 }],
+  ];
+
+  const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "id" + Math.random().toString(36).slice(2);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const cat = name => CATALOG.find(c => c.name === name);
+  const fromCatalog = (c, groupID) => ({ id: uid(), name: c.name, launch: { kind: "url", value: c.url }, glyph: { kind: "symbol", value: c.icon }, colorHex: c.color, secondaryColorHex: null, glyphColorHex: "#FFFFFF", groupID, isDocked: false, keywords: c.kw, launchCount: 0 });
+
+  function seed() {
+    const g = [{ id: "g1", name: "Essentials", isCollapsed: false }, { id: "g2", name: "Everyday", isCollapsed: false }, { id: "g3", name: "Tools", isCollapsed: false }];
+    const plan = [["Phone","g1",1],["Messages","g1",1],["Safari","g1",1],["Music","g1",1],["Mail","g1"],["Photos","g1"],["Maps","g1"],["Calendar","g1"],["Weather","g2"],["Notes","g2"],["Reminders","g2"],["Podcasts","g2"],["Spotify","g2"],["Settings","g3"],["Shortcuts","g3"],["Files","g3"],["App Store","g3"]];
+    const apps = plan.map(([n, gid, d]) => Object.assign(fromCatalog(cat(n), gid), { isDocked: !!d }));
+    return { groups: g, apps, theme: { ...DEFAULT_THEME } };
+  }
+
+  const KEY = "go-launcher-preview-v1";
+  let state;
+  try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
+  if (!state || !state.apps || !state.groups || !state.theme) state = seed();
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+
+  let editing = false;
+  let query = "";
+  const $ = id => document.getElementById(id);
+  const screen = $("screen"), content = $("content"), overlay = $("overlay"), qInput = $("q");
+
+  // ---------- Helpers ----------
+  const appsIn = gid => state.apps.filter(a => a.groupID === gid);
+  const dockApps = () => state.apps.filter(a => a.isDocked).slice(0, 5);
+  const byId = id => state.apps.find(a => a.id === id);
+  const launchURL = l => l.kind === "shortcut" ? (l.value.trim() ? "shortcuts://run-shortcut?name=" + encodeURIComponent(l.value.trim()) : "") : l.value.trim();
+
+  function isSubseq(n, h) { let i = 0; for (const ch of n) { if (ch === " ") continue; i = h.indexOf(ch, i); if (i < 0) return false; i++; } return true; }
+  function search(q) {
+    q = q.trim().toLowerCase(); if (!q) return [];
+    return state.apps.map(a => {
+      const n = a.name.toLowerCase(); let s = 0;
+      if (n.startsWith(q)) s = 400; else if (n.split(" ").some(w => w.startsWith(q))) s = 300; else if (n.includes(q)) s = 200;
+      else if ((a.keywords || "").toLowerCase().includes(q)) s = 100; else if (isSubseq(q, n)) s = 10;
+      return [a, s];
+    }).filter(x => x[1] > 0).sort((x, y) => y[1] - x[1] || y[0].launchCount - x[0].launchCount).map(x => x[0]);
+  }
+
+  function tileHTML(glyph, bg, bg2, fg, extraClass = "") {
+    const background = bg2 ? `linear-gradient(135deg, ${bg}, ${bg2})` : bg;
+    let inner;
+    if (glyph.kind === "emoji") inner = `<span class="emoji">${esc(glyph.value)}</span>`;
+    else inner = `<i data-lucide="${esc(glyph.value)}"></i>`;
+    return `<span class="tile ${extraClass}" style="background:${background};color:${fg}">${inner}</span>`;
+  }
+  function appTile(a) {
+    const t = state.theme;
+    return t.uniformIconColors ? tileHTML(a.glyph, t.uniformIconHex, null, t.uniformGlyphHex) : tileHTML(a.glyph, a.colorHex, a.secondaryColorHex, a.glyphColorHex);
+  }
+  function icons(root) { if (window.lucide) lucide.createIcons({ attrs: { "stroke-width": 2.2 } }); }
+
+  // ---------- Theme ----------
+  function applyTheme() {
+    const t = state.theme, s = screen.style;
+    s.setProperty("--bg-top", t.backgroundTopHex); s.setProperty("--bg-bottom", t.backgroundBottomHex);
+    s.setProperty("--label", t.labelColorHex); s.setProperty("--app-font", FONTS[t.fontStyle][1]);
+    s.setProperty("--icon", t.iconSize + "px"); s.setProperty("--corner", t.cornerFactor); s.setProperty("--cols", t.columns);
+    s.setProperty("--material", t.isDark ? "rgba(255,255,255,.13)" : "rgba(255,255,255,.5)");
+    s.setProperty("--label-shadow", t.isDark ? "0 1px 2px rgba(0,0,0,.35)" : "none");
+    screen.classList.toggle("light", !t.isDark);
+    $("clock").hidden = !t.showClock;
+  }
+
+  // ---------- Home ----------
+  function renderHeadBtn() {
+    $("headBtn").innerHTML = editing
+      ? `<button class="done-btn" data-act="done" type="button">Done</button>`
+      : `<button class="round-btn" data-act="menu" type="button" aria-label="Options"><i data-lucide="ellipsis"></i></button>`;
+  }
+  function cellHTML(a, inEdit) {
+    return `<button class="cell" type="button" data-act="app" data-id="${a.id}" ${inEdit ? 'draggable="true"' : ""} aria-label="${esc(a.name)}">
+      ${inEdit ? `<span class="minus" data-act="minus" data-id="${a.id}" role="button" aria-label="Remove ${esc(a.name)}">–</span>` : ""}
+      ${appTile(a)}${state.theme.showLabels ? `<span class="label">${esc(a.name)}</span>` : ""}</button>`;
+  }
+  function renderContent() {
+    const t = state.theme;
+    content.className = (t.showGroupCards ? "cards " : "") + (editing ? "editing" : "");
+    if (query.trim()) {
+      const r = search(query);
+      content.innerHTML = (r.length
+        ? `<div class="group"><div class="grid" style="margin-top:0">${r.map(a => cellHTML(a, false)).join("")}</div></div><div class="hint">Press Enter to open ${esc(r[0].name)}</div>`
+        : `<div class="hint" style="font-size:14px">No apps match “${esc(query)}”</div>`)
+        + `<button class="web-btn" data-act="web" type="button"><i data-lucide="compass"></i>Search the web for “${esc(query)}”</button>`;
+    } else {
+      content.innerHTML = state.groups.map(g => {
+        const apps = appsIn(g.id);
+        return `<section class="group">
+          <button class="ghead ${g.isCollapsed ? "collapsed" : ""}" type="button" data-act="collapse" data-gid="${g.id}">
+            ${esc(g.name)}${g.isCollapsed ? `<span class="count">${apps.length}</span>` : ""}<i class="chev" data-lucide="chevron-down"></i></button>
+          ${g.isCollapsed ? "" : `<div class="grid">${apps.map(a => cellHTML(a, editing)).join("")}${editing ? `<button class="cell addtile" type="button" data-act="add" data-gid="${g.id}"><span class="tile"><i data-lucide="plus"></i></span>${t.showLabels ? '<span class="label">Add</span>' : ""}</button>` : ""}</div>
+          ${!apps.length && !editing ? `<div class="empty">Empty. Drag apps here, or use ••• › Edit Layout.</div>` : ""}`}
+        </section>`;
+      }).join("");
+    }
+    const d = dockApps();
+    $("dock").innerHTML = (!query.trim() && d.length) ? `<div class="dock">${d.map(a => `<button class="cell" type="button" data-act="app" data-id="${a.id}" aria-label="${esc(a.name)}">${appTile(a)}</button>`).join("")}</div>` : "";
+    $("scroll").style.paddingBottom = d.length && !query.trim() ? "130px" : "40px";
+  }
+  function render() { applyTheme(); renderHeadBtn(); renderContent(); icons(); save(); }
+
+  function tick() {
+    const now = new Date();
+    $("dateText").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+    $("timeText").textContent = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M$/i, "");
+    $("sbTime").textContent = $("timeText").textContent;
+  }
+
+  // ---------- Toast ----------
+  let toastTimer;
+  function toast(html) {
+    $("toastHost").innerHTML = `<div class="toast" role="status">${html}</div>`;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toastHost").innerHTML = "", 2600);
+  }
+  function launch(a) {
+    const url = launchURL(a.launch);
+    if (!url) { toast(`${esc(a.name)} has no link yet. Long-press it and choose Edit Icon.`); return; }
+    a.launchCount++; query = ""; qInput.value = ""; syncSearchUI(); render();
+    toast(`On iPhone this opens <b>${esc(a.name)}</b><br><code>${esc(url)}</code>`);
+  }
+
+  // ---------- Overlays ----------
+  function closeOverlay() { overlay.innerHTML = ""; }
+  function openMenu() {
+    overlay.innerHTML = `<div class="scrim clear" data-act="close"></div><div class="menu" role="menu">
+      <button data-act="add" type="button" role="menuitem">Add App<i data-lucide="square-plus"></i></button>
+      <button data-act="edit-layout" type="button" role="menuitem">Edit Layout<i data-lucide="layout-grid"></i></button>
+      <button data-act="groups" type="button" role="menuitem">Groups<i data-lucide="folder"></i></button>
+      <button data-act="design" type="button" role="menuitem">Design<i data-lucide="palette"></i></button></div>`;
+    icons();
+  }
+  function openActions(a, confirm = false) {
+    const url = launchURL(a.launch);
+    const body = confirm
+      ? `<div class="act-msg">Remove ${esc(a.name)} from Go? The real app stays on your iPhone.</div>
+         <button class="danger" data-act="confirm-remove" data-id="${a.id}" type="button">Remove from Go<i data-lucide="trash-2"></i></button>`
+      : `<button data-act="edit" data-id="${a.id}" type="button">Edit Icon<i data-lucide="pencil"></i></button>
+         <button data-act="dock" data-id="${a.id}" type="button">${a.isDocked ? "Remove from Dock" : "Add to Dock"}<i data-lucide="dock"></i></button>
+         ${state.groups.filter(g => g.id !== a.groupID).map(g => `<button data-act="move" data-id="${a.id}" data-gid="${g.id}" type="button">Move to ${esc(g.name)}<i data-lucide="folder-input"></i></button>`).join("")}
+         <button data-act="edit-layout" type="button">Edit Layout<i data-lucide="layout-grid"></i></button>
+         <button class="danger" data-act="remove" data-id="${a.id}" type="button">Remove<i data-lucide="trash-2"></i></button>`;
+    overlay.innerHTML = `<div class="scrim" data-act="close"></div><div class="sheet actions">
+      <div class="act-box sheet-actions"><div class="act-head">${appTile(a)}<div><b>${esc(a.name)}</b><small>${esc(url || "no link set")}</small></div></div>${body}</div>
+      <div class="act-box sheet-actions"><button class="act-cancel" data-act="close" type="button">Cancel</button></div></div>`;
+    icons();
+  }
+
+  // ---------- Editor ----------
+  let draft = null, draftIsNew = false, editorReturn = null;
+  function openEditor(app, isNew, ret = null) {
+    draft = JSON.parse(JSON.stringify(app)); draftIsNew = isNew; editorReturn = ret;
+    if (!draft._symbol) draft._symbol = draft.glyph.kind === "symbol" ? draft.glyph.value : "star";
+    if (!draft._emoji) draft._emoji = draft.glyph.kind === "emoji" ? draft.glyph.value : "⭐️";
+    renderEditor();
+  }
+  function editorPreview() {
+    const g = draft.glyph.kind === "emoji" ? { kind: "emoji", value: draft._emoji || "⭐️" } : { kind: "symbol", value: draft._symbol };
+    return `<div class="preview-tile">${tileHTML(g, draft.colorHex, draft.secondaryColorHex, draft.glyphColorHex)}<span class="label">${esc(draft.name || "Name")}</span></div>`;
+  }
+  function canSave() { return draft.name.trim() && draft.launch.value.trim(); }
+  function renderEditor() {
+    const d = draft, isUrl = d.launch.kind === "url", isSym = d.glyph.kind === "symbol";
+    overlay.innerHTML = `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Edit icon">
+      <div class="grabber"></div>
+      <div class="navbar"><span class="l">${editorReturn ? `<button class="link" data-act="ed-back" type="button">‹ Add App</button>` : `<button class="link" data-act="close" type="button">Cancel</button>`}</span>
+        <h2>${draftIsNew ? "New Icon" : "Edit Icon"}</h2>
+        <span class="r"><button class="link bold" id="edSave" data-act="ed-save" type="button" ${canSave() ? "" : "disabled"}>${draftIsNew ? "Add" : "Save"}</button></span></div>
+      <div class="form">
+        <div id="edPreview">${editorPreview()}</div>
+        ${state.theme.uniformIconColors ? `<div class="sec-foot" style="text-align:center">Matching icon colors is on in Design, so these colors show only when it's off.</div>` : ""}
+        <div class="sec-title">Name</div>
+        <div class="box"><div class="row"><input id="edName" type="text" placeholder="App name" value="${esc(d.name)}"></div>
+          <div class="row"><input id="edKw" type="text" placeholder="Extra search words (optional)" value="${esc(d.keywords || "")}"></div></div>
+        <div class="sec-title">What it opens</div>
+        <div class="box">
+          <div class="row"><div class="seg"><button type="button" data-act="ed-launch" data-v="url" class="${isUrl ? "on" : ""}">Link / URL</button><button type="button" data-act="ed-launch" data-v="shortcut" class="${isUrl ? "" : "on"}">Shortcut</button></div></div>
+          <div class="row"><input id="edLaunch" type="text" placeholder="${isUrl ? "e.g. spotify:// or https://…" : "Shortcut name, e.g. Open Camera"}" value="${esc(d.launch.value)}"></div>
+          ${isUrl ? `<div class="row"><span>Pick a known app</span><select id="edPick" aria-label="Pick a known app"><option value="">Choose…</option>${CATS.map(c => `<optgroup label="${c}">${CATALOG.filter(x => x.cat === c).map(x => `<option>${esc(x.name)}</option>`).join("")}</optgroup>`).join("")}</select></div>` : ""}
+          <div class="row"><button class="rowbtn" data-act="ed-test" type="button"><i data-lucide="play"></i>Test</button></div></div>
+        <div class="sec-foot">${isUrl ? "Most apps have a link like name:// that opens them. If an app doesn't, use Shortcut instead." : "Works for any app: in Shortcuts, make a shortcut with the “Open App” action, then type its exact name here."}</div>
+        <div class="sec-title">Icon</div>
+        <div class="box">
+          <div class="row"><div class="seg"><button type="button" data-act="ed-glyph" data-v="symbol" class="${isSym ? "on" : ""}">Symbol</button><button type="button" data-act="ed-glyph" data-v="emoji" class="${isSym ? "" : "on"}">Emoji</button><button type="button" data-act="ed-photo" data-v="photo">Photo</button></div></div>
+          ${isSym ? `<div class="row col"><div class="symbols">${SYMBOLS.map(s => `<button type="button" data-act="ed-sym" data-v="${s}" class="${s === d._symbol ? "on" : ""}" aria-label="${s}"><i data-lucide="${s}"></i></button>`).join("")}</div></div>`
+                  : `<div class="row"><input id="edEmoji" type="text" value="${esc(d._emoji)}" style="font-size:34px" aria-label="Emoji"></div>`}</div>
+        <div class="sec-title">Colors</div>
+        <div class="box">
+          <div class="row col"><div class="swatches">${SWATCHES.map(h => `<button type="button" data-act="ed-swatch" data-v="${h}" style="background:${h}" class="${d.colorHex.toUpperCase() === h ? "on" : ""}" aria-label="Color ${h}"></button>`).join("")}</div></div>
+          <div class="row"><span>Background</span><input id="edBg" type="color" value="${d.colorHex.slice(0, 7)}"></div>
+          <div class="row"><span>Gradient</span><label class="switch"><input id="edGrad" type="checkbox" ${d.secondaryColorHex ? "checked" : ""}><span></span></label></div>
+          ${d.secondaryColorHex ? `<div class="row"><span>Gradient end</span><input id="edBg2" type="color" value="${d.secondaryColorHex.slice(0, 7)}"></div>` : ""}
+          ${isSym ? `<div class="row"><span>Symbol</span><input id="edFg" type="color" value="${d.glyphColorHex.slice(0, 7)}"></div>` : ""}</div>
+        <div class="sec-title">Organize</div>
+        <div class="box">
+          <div class="row"><span>Group</span><select id="edGroup" aria-label="Group">${state.groups.map(g => `<option value="${g.id}" ${g.id === d.groupID ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select></div>
+          <div class="row"><span>Show in Dock</span><label class="switch"><input id="edDock" type="checkbox" ${d.isDocked ? "checked" : ""}><span></span></label></div></div>
+        ${draftIsNew ? "" : `<div class="box" style="margin-top:26px"><div class="row"><button class="rowbtn danger" data-act="remove" data-id="${d.id}" type="button">Remove from Go</button></div></div>`}
+      </div></div>`;
+    icons();
+  }
+  function refreshEditorPreview() { $("edPreview").innerHTML = editorPreview(); $("edSave").disabled = !canSave(); icons(); }
+  function saveDraft() {
+    const a = JSON.parse(JSON.stringify(draft));
+    a.name = a.name.trim();
+    a.glyph = a.glyph.kind === "emoji" ? { kind: "emoji", value: a._emoji || "⭐️" } : { kind: "symbol", value: a._symbol };
+    delete a._symbol; delete a._emoji;
+    const i = state.apps.findIndex(x => x.id === a.id);
+    if (i >= 0) state.apps[i] = a; else state.apps.push(a);
+    closeOverlay(); render(); toast(`${draftIsNew ? "Added" : "Saved"} ${esc(a.name)}`);
+  }
+
+  // ---------- Add App ----------
+  let addGroup = null, addQuery = "";
+  function openAdd(gid) { addGroup = gid || state.groups[0].id; addQuery = ""; renderAdd(); }
+  function addListHTML() {
+    const q = addQuery.trim().toLowerCase(), names = new Set(state.apps.map(a => a.name));
+    const list = CATALOG.filter(c => !q || c.name.toLowerCase().includes(q) || c.kw.includes(q));
+    return CATS.map(c => {
+      const rows = list.filter(x => x.cat === c); if (!rows.length) return "";
+      return `<div class="sec-title">${c}</div><div class="box">${rows.map(x => `<button class="cat-row" type="button" data-act="add-pick" data-name="${esc(x.name)}"><span class="mini">${tileHTML({ kind: "symbol", value: x.icon }, x.color, null, "#FFFFFF")}</span>${esc(x.name)}${names.has(x.name) ? '<span class="added">Added</span>' : ""}<i class="chev" data-lucide="chevron-right"></i></button>`).join("")}</div>`;
+    }).join("") || `<div class="sec-foot" style="text-align:center;margin-top:20px">No matches. Add it as a custom app instead.</div>`;
+  }
+  function renderAdd() {
+    overlay.innerHTML = `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Add app"><div class="grabber"></div>
+      <div class="navbar"><span class="l"><button class="link" data-act="close" type="button">Cancel</button></span><h2>Add App</h2><span class="r"></span></div>
+      <div class="form"><div class="box"><div class="row"><input id="addQ" type="search" placeholder="Search apps" value="${esc(addQuery)}" aria-label="Search catalog"></div></div>
+        <div class="box" style="margin-top:16px"><button class="cat-row tint" type="button" data-act="add-custom"><i data-lucide="square-plus"></i>Custom App, Website or Shortcut</button></div>
+        <div class="sec-foot">Don't see your app? Add it as custom. Any app can be opened with a Shortcut.</div>
+        <div id="addList">${addListHTML()}</div></div></div>`;
+    icons();
+  }
+
+  // ---------- Groups ----------
+  function renderGroups() {
+    overlay.innerHTML = `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Groups"><div class="grabber"></div>
+      <div class="navbar"><span class="l"></span><h2>Groups</h2><span class="r"><button class="link bold" data-act="close" type="button">Done</button></span></div>
+      <div class="form"><div class="sec-title">Your groups</div><div class="box">
+        ${state.groups.map((g, i) => `<div class="row"><input type="text" data-gname="${g.id}" value="${esc(g.name)}" aria-label="Group name">
+          <span class="val">${appsIn(g.id).length}</span>
+          <button class="gbtn" data-act="g-up" data-gid="${g.id}" type="button" ${i === 0 ? "disabled" : ""} aria-label="Move up"><i data-lucide="chevron-up"></i></button>
+          <button class="gbtn" data-act="g-down" data-gid="${g.id}" type="button" ${i === state.groups.length - 1 ? "disabled" : ""} aria-label="Move down"><i data-lucide="chevron-down"></i></button>
+          <button class="gbtn del" data-act="g-del" data-gid="${g.id}" type="button" ${state.groups.length < 2 ? "disabled" : ""} aria-label="Delete group"><i data-lucide="circle-minus"></i></button></div>`).join("")}
+        </div><div class="sec-foot">Tap a name to rename it. Deleting a group moves its apps into the first remaining group, so no apps are lost.</div>
+        <div class="box" style="margin-top:22px"><div class="row"><button class="rowbtn" data-act="g-new" type="button"><i data-lucide="plus"></i>New Group</button></div></div></div></div>`;
+    icons();
+  }
+
+  // ---------- Design ----------
+  function renderDesign() {
+    const t = state.theme;
+    const presetOn = n => { const p = PRESETS.find(x => x[0] === n)[1]; return Object.keys(p).every(k => t[k] === p[k]); };
+    const uniAlpha = t.uniformIconHex.length === 9 ? parseInt(t.uniformIconHex.slice(7), 16) / 255 : 1;
+    const shape = t.cornerFactor < .06 ? "Square" : t.cornerFactor < .33 ? "Rounded" : t.cornerFactor < .46 ? "Squircle" : "Circle";
+    overlay.innerHTML = `<div class="scrim clear" data-act="close"></div><div class="sheet half" role="dialog" aria-label="Design"><div class="grabber"></div>
+      <div class="navbar"><span class="l"></span><h2>Design</h2><span class="r"><button class="link bold" data-act="close" type="button">Done</button></span></div>
+      <div class="form">
+        <div class="sec-title">Presets</div><div class="box"><div class="row col"><div class="presets">
+          ${PRESETS.map(([n, p]) => { const pt = { ...DEFAULT_THEME, ...p }; const cols = ["#F472B6", "#818CF8", "#34D399", "#FBBF24"];
+            return `<button class="preset ${presetOn(n) ? "on" : ""}" type="button" data-act="preset" data-v="${n}"><span class="sw" style="background:linear-gradient(${pt.backgroundTopHex},${pt.backgroundBottomHex})">${cols.map(c => `<i style="background:${pt.uniformIconColors ? pt.uniformIconHex : c};border-radius:${pt.cornerFactor * 16}px"></i>`).join("")}</span><span style="font-family:${FONTS[pt.fontStyle][1]}">${n}</span></button>`; }).join("")}
+        </div></div></div>
+        <div class="sec-title">Background</div><div class="box">
+          <div class="row"><span>Top color</span><input type="color" data-theme-color="backgroundTopHex" value="${t.backgroundTopHex.slice(0, 7)}"></div>
+          <div class="row"><span>Bottom color</span><input type="color" data-theme-color="backgroundBottomHex" value="${t.backgroundBottomHex.slice(0, 7)}"></div>
+          <div class="row"><button class="rowbtn" data-act="ed-photo" type="button"><i data-lucide="image"></i>Choose Wallpaper Photo</button></div>
+          <div class="row"><span>Dark style</span><label class="switch"><input type="checkbox" data-theme-bool="isDark" ${t.isDark ? "checked" : ""}><span></span></label></div></div>
+        <div class="sec-title">Icons</div><div class="box">
+          <div class="row col"><span>Size</span><input type="range" min="44" max="84" step="1" data-theme-num="iconSize" value="${t.iconSize}" aria-label="Icon size"></div>
+          <div class="row col"><span style="display:flex;justify-content:space-between">Shape <span class="val" id="shapeName">${shape}</span></span><input type="range" min="0" max="0.5" step="0.01" data-theme-num="cornerFactor" value="${t.cornerFactor}" aria-label="Icon shape"></div>
+          <div class="row"><span>Columns: <b id="colN">${t.columns}</b></span><span class="stepper"><button type="button" data-act="cols" data-v="-1" aria-label="Fewer columns">−</button><button type="button" data-act="cols" data-v="1" aria-label="More columns">+</button></span></div>
+          <div class="row"><span>Matching icon colors</span><label class="switch"><input type="checkbox" data-theme-bool="uniformIconColors" data-rerender="1" ${t.uniformIconColors ? "checked" : ""}><span></span></label></div>
+          ${t.uniformIconColors ? `<div class="row"><span>Icon background</span><input type="color" data-theme-color="uniformIconHex" data-keep-alpha="1" value="${t.uniformIconHex.slice(0, 7)}"></div>
+            <div class="row col"><span>Background opacity</span><input type="range" min="0.1" max="1" step="0.01" id="uniAlpha" value="${uniAlpha.toFixed(2)}" aria-label="Icon background opacity"></div>
+            <div class="row"><span>Icon symbol</span><input type="color" data-theme-color="uniformGlyphHex" value="${t.uniformGlyphHex.slice(0, 7)}"></div>` : ""}</div>
+        <div class="sec-foot">Matching colors gives every icon the same look. Each icon keeps its own colors for when you turn it off.</div>
+        <div class="sec-title">Text</div><div class="box">
+          <div class="row"><span>Show app names</span><label class="switch"><input type="checkbox" data-theme-bool="showLabels" ${t.showLabels ? "checked" : ""}><span></span></label></div>
+          <div class="row"><span>Text color</span><input type="color" data-theme-color="labelColorHex" value="${t.labelColorHex.slice(0, 7)}"></div>
+          <div class="row"><span>Font</span><select id="fontSel" aria-label="Font">${Object.entries(FONTS).map(([k, v]) => `<option value="${k}" ${k === t.fontStyle ? "selected" : ""}>${v[0]}</option>`).join("")}</select></div></div>
+        <div class="sec-title">Layout & behavior</div><div class="box">
+          <div class="row"><span>Show clock & date</span><label class="switch"><input type="checkbox" data-theme-bool="showClock" ${t.showClock ? "checked" : ""}><span></span></label></div>
+          <div class="row"><span>Group cards</span><label class="switch"><input type="checkbox" data-theme-bool="showGroupCards" ${t.showGroupCards ? "checked" : ""}><span></span></label></div></div>
+        <div class="box" style="margin-top:26px"><div class="row"><button class="rowbtn danger" data-act="reset" type="button">Reset Everything to Default</button></div></div>
+      </div></div>`;
+    icons();
+  }
+
+  // ---------- Search UI ----------
+  function syncSearchUI() {
+    $("clearQ").hidden = !query; $("cancelQ").hidden = document.activeElement !== qInput && !query;
+  }
+  qInput.addEventListener("input", () => { query = qInput.value; syncSearchUI(); renderContent(); icons(); });
+  qInput.addEventListener("focus", syncSearchUI);
+  qInput.addEventListener("blur", () => setTimeout(syncSearchUI, 120));
+  qInput.addEventListener("keydown", e => { if (e.key === "Enter") { const r = search(query); if (r[0]) launch(r[0]); } if (e.key === "Escape") { query = ""; qInput.value = ""; qInput.blur(); syncSearchUI(); renderContent(); icons(); } });
+  $("clearQ").addEventListener("click", e => { e.preventDefault(); query = ""; qInput.value = ""; qInput.focus(); syncSearchUI(); renderContent(); icons(); });
+  $("cancelQ").addEventListener("click", () => { query = ""; qInput.value = ""; qInput.blur(); syncSearchUI(); renderContent(); icons(); });
+
+  // ---------- Long press / context menu ----------
+  let pressTimer = null, longPressed = false;
+  screen.addEventListener("pointerdown", e => {
+    const cell = e.target.closest('.cell[data-id]'); if (!cell || editing) return;
+    longPressed = false;
+    pressTimer = setTimeout(() => { longPressed = true; const a = byId(cell.dataset.id); if (a) openActions(a); }, 480);
+  });
+  ["pointerup", "pointerleave", "pointercancel", "pointermove"].forEach(ev => screen.addEventListener(ev, e => {
+    if (ev === "pointermove" && (Math.abs(e.movementX) + Math.abs(e.movementY) < 3)) return;
+    clearTimeout(pressTimer);
+  }));
+  screen.addEventListener("contextmenu", e => {
+    const cell = e.target.closest('.cell[data-id]'); if (!cell) return;
+    e.preventDefault(); clearTimeout(pressTimer); const a = byId(cell.dataset.id); if (a) openActions(a);
+  });
+
+  // ---------- Drag and drop (Edit Layout) ----------
+  function moveOnto(id, targetId) {
+    if (id === targetId) return;
+    const apps = state.apps, from = apps.findIndex(a => a.id === id), tg = apps.find(a => a.id === targetId);
+    if (from < 0 || !tg) return;
+    const [a] = apps.splice(from, 1); const same = a.groupID === tg.groupID;
+    const t = apps.findIndex(x => x.id === targetId);
+    a.groupID = tg.groupID; apps.splice(same && from <= t ? t + 1 : t, 0, a);
+  }
+  function moveToGroup(id, gid) { const i = state.apps.findIndex(a => a.id === id); if (i < 0) return; const [a] = state.apps.splice(i, 1); a.groupID = gid; state.apps.push(a); }
+  screen.addEventListener("dragstart", e => { const c = e.target.closest(".cell[data-id]"); if (!c) return; e.dataTransfer.setData("text/plain", c.dataset.id); e.dataTransfer.effectAllowed = "move"; });
+  screen.addEventListener("dragover", e => { const t = e.target.closest(".cell[data-id], .ghead"); if (!t) return; e.preventDefault(); screen.querySelectorAll(".drop-over").forEach(x => x !== t && x.classList.remove("drop-over")); t.classList.add("drop-over"); });
+  screen.addEventListener("dragleave", e => { const t = e.target.closest(".drop-over"); if (t && !t.contains(e.relatedTarget)) t.classList.remove("drop-over"); });
+  screen.addEventListener("drop", e => {
+    const t = e.target.closest(".cell[data-id], .ghead"); if (!t) return; e.preventDefault();
+    const id = e.dataTransfer.getData("text/plain");
+    if (t.classList.contains("ghead")) moveToGroup(id, t.dataset.gid); else moveOnto(id, t.dataset.id);
+    render();
+  });
+
+  // ---------- Click actions ----------
+  screen.addEventListener("click", e => {
+    if (longPressed) { longPressed = false; e.preventDefault(); return; }
+    const el = e.target.closest("[data-act]"); if (!el) return;
+    const act = el.dataset.act, id = el.dataset.id, gid = el.dataset.gid, v = el.dataset.v;
+    switch (act) {
+      case "app": {
+        const a = byId(id); if (!a) return;
+        if (editing) openEditor(a, false); else launch(a);
+        break;
+      }
+      case "minus": e.stopPropagation(); openActions(byId(id), true); break;
+      case "menu": openMenu(); break;
+      case "close": closeOverlay(); render(); break;
+      case "done": editing = false; render(); break;
+      case "edit-layout": closeOverlay(); editing = true; query = ""; qInput.value = ""; syncSearchUI(); render(); break;
+      case "collapse": { const g = state.groups.find(x => x.id === gid); g.isCollapsed = !g.isCollapsed; render(); break; }
+      case "add": openAdd(gid); break;
+      case "groups": renderGroups(); break;
+      case "design": renderDesign(); break;
+      case "web": toast(`On iPhone this searches the web for “${esc(query)}” in Safari`); break;
+      case "edit": openEditor(byId(id), false); break;
+      case "dock": { const a = byId(id); if (!a.isDocked && dockApps().length >= 5) { toast("The dock holds up to 5 apps"); return; } a.isDocked = !a.isDocked; closeOverlay(); render(); break; }
+      case "move": moveToGroup(id, gid); closeOverlay(); render(); break;
+      case "remove": openActions(byId(id) || draft, true); break;
+      case "confirm-remove": { const a = byId(id); state.apps = state.apps.filter(x => x.id !== id); closeOverlay(); render(); if (a) toast(`Removed ${esc(a.name)} from Go`); break; }
+      // editor
+      case "ed-launch": draft.launch.kind = v; renderEditor(); break;
+      case "ed-glyph": draft.glyph.kind = v; renderEditor(); break;
+      case "ed-photo": toast("On iPhone this opens your photo library"); break;
+      case "ed-sym": draft._symbol = v; draft.glyph.kind = "symbol"; screen.querySelectorAll(".symbols .on").forEach(b => b.classList.remove("on")); el.classList.add("on"); refreshEditorPreview(); break;
+      case "ed-swatch": draft.colorHex = v; screen.querySelectorAll(".swatches .on").forEach(b => b.classList.remove("on")); el.classList.add("on"); $("edBg").value = v.slice(0, 7); refreshEditorPreview(); break;
+      case "ed-test": { const u = launchURL(draft.launch); toast(u ? `On iPhone this opens<br><code>${esc(u)}</code>` : "Add a link or Shortcut name first"); break; }
+      case "ed-save": if (canSave()) saveDraft(); break;
+      case "ed-back": renderAdd(); break;
+      // add
+      case "add-custom": openEditor({ id: uid(), name: "", launch: { kind: "url", value: "" }, glyph: { kind: "symbol", value: "star" }, colorHex: "#7C6AF4", secondaryColorHex: null, glyphColorHex: "#FFFFFF", groupID: addGroup, isDocked: false, keywords: "", launchCount: 0 }, true, true); break;
+      case "add-pick": openEditor(fromCatalog(cat(el.dataset.name), addGroup), true, true); break;
+      // groups
+      case "g-new": state.groups.push({ id: uid(), name: "New Group", isCollapsed: false }); save(); renderGroups(); renderContent(); icons(); break;
+      case "g-up": case "g-down": { const i = state.groups.findIndex(g => g.id === gid), j = act === "g-up" ? i - 1 : i + 1; [state.groups[i], state.groups[j]] = [state.groups[j], state.groups[i]]; save(); renderGroups(); renderContent(); icons(); break; }
+      case "g-del": { if (state.groups.length < 2) return; const rest = state.groups.filter(g => g.id !== gid); state.apps.forEach(a => { if (a.groupID === gid) a.groupID = rest[0].id; }); state.groups = rest; save(); renderGroups(); renderContent(); icons(); break; }
+      // design
+      case "preset": Object.assign(state.theme, PRESETS.find(p => p[0] === v)[1]); render(); renderDesign(); break;
+      case "cols": state.theme.columns = Math.min(6, Math.max(3, state.theme.columns + Number(v))); $("colN").textContent = state.theme.columns; render(); break;
+      case "reset": state = seed(); editing = false; closeOverlay(); render(); toast("Reset to the starter layout"); break;
+    }
+  });
+
+  // ---------- Form inputs ----------
+  screen.addEventListener("input", e => {
+    const el = e.target;
+    if (draft && overlay.contains(el)) {
+      if (el.id === "edName") draft.name = el.value;
+      else if (el.id === "edKw") draft.keywords = el.value;
+      else if (el.id === "edLaunch") draft.launch.value = el.value;
+      else if (el.id === "edEmoji") { const chars = (window.Intl && Intl.Segmenter) ? [...new Intl.Segmenter().segment(el.value)].map(s => s.segment) : Array.from(el.value); draft._emoji = chars.length ? chars[chars.length - 1] : ""; if (chars.length > 1) el.value = draft._emoji; }
+      else if (el.id === "edBg") { draft.colorHex = el.value.toUpperCase(); screen.querySelectorAll(".swatches .on").forEach(b => b.classList.remove("on")); }
+      else if (el.id === "edBg2") draft.secondaryColorHex = el.value.toUpperCase();
+      else if (el.id === "edFg") draft.glyphColorHex = el.value.toUpperCase();
+      if (el.id && el.id.startsWith("ed")) refreshEditorPreview();
+    }
+    if (el.id === "addQ") { addQuery = el.value; $("addList").innerHTML = addListHTML(); icons(); }
+    if (el.dataset.gname) { const g = state.groups.find(x => x.id === el.dataset.gname); g.name = el.value; save(); renderContent(); icons(); }
+    const t = state.theme;
+    if (el.dataset.themeColor) { const k = el.dataset.themeColor; t[k] = el.value.toUpperCase() + (el.dataset.keepAlpha && t[k].length === 9 ? t[k].slice(7) : ""); render(); }
+    if (el.dataset.themeNum) {
+      t[el.dataset.themeNum] = Number(el.value); render();
+      if (el.dataset.themeNum === "cornerFactor") { const c = t.cornerFactor; $("shapeName").textContent = c < .06 ? "Square" : c < .33 ? "Rounded" : c < .46 ? "Squircle" : "Circle"; }
+    }
+    if (el.id === "uniAlpha") { t.uniformIconHex = t.uniformIconHex.slice(0, 7) + Math.round(Number(el.value) * 255).toString(16).padStart(2, "0").toUpperCase(); render(); }
+  });
+  screen.addEventListener("change", e => {
+    const el = e.target, t = state.theme;
+    if (el.id === "edGrad") { draft.secondaryColorHex = el.checked ? "#111827" : null; renderEditor(); }
+    else if (el.id === "edDock") draft.isDocked = el.checked;
+    else if (el.id === "edGroup") draft.groupID = el.value;
+    else if (el.id === "edPick" && el.value) {
+      const c = cat(el.value); draft.launch.value = c.url;
+      if (!draft.name) draft.name = c.name; if (!draft.keywords) draft.keywords = c.kw;
+      if (draft.glyph.kind === "symbol") { draft._symbol = c.icon; draft.colorHex = c.color; }
+      renderEditor();
+    }
+    else if (el.dataset.themeBool) { t[el.dataset.themeBool] = el.checked; render(); if (el.dataset.rerender) renderDesign(); }
+    else if (el.id === "fontSel") { t.fontStyle = el.value; render(); }
+  });
+
+  $("resetAll").addEventListener("click", () => { state = seed(); editing = false; query = ""; qInput.value = ""; closeOverlay(); syncSearchUI(); render(); toast("Reset to the starter layout"); });
+
+  tick(); setInterval(tick, 15000);
+  render();
+})();
+</script>
