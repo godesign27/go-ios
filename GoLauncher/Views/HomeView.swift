@@ -5,8 +5,7 @@ struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
 
-    @State private var query = ""
-    @FocusState private var searchFocused: Bool
+    @State private var isSearching = false
     @State private var isEditing = false
     @State private var activeSheet: ActiveSheet?
     @State private var pendingDelete: LauncherApp?
@@ -18,28 +17,61 @@ struct HomeView: View {
         Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: max(theme.columns, 1))
     }
 
-    private var results: [LauncherApp] { store.search(query) }
+    private var showsDock: Bool { store.state.showDock && !store.dockApps.isEmpty }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-                searchBar
-                if query.isEmpty {
-                    groupsContent
-                } else {
-                    searchContent
+        ZStack(alignment: .bottomTrailing) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    header
+                    ForEach(store.visibleSections) { section in
+                        switch section {
+                        case .smart(let kind):
+                            smartSection(kind)
+                        case .group(let group):
+                            groupSection(group)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                // Room for the search button (and dock) so the last row isn't covered.
+                .padding(.bottom, showsDock ? 190 : 96)
+            }
+
+            VStack(alignment: .trailing, spacing: 12) {
+                if !isEditing {
+                    searchButton
+                }
+                if showsDock {
+                    dock
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 24)
+            .padding(.horizontal, showsDock ? 12 : 20)
+            .padding(.bottom, showsDock ? 4 : 16)
+
+            if isSearching {
+                SearchOverlay(
+                    theme: theme,
+                    onLaunch: { app, query in
+                        store.addRecentSearch(query)
+                        launch(app)
+                    },
+                    onWebSearch: { query in
+                        store.addRecentSearch(query)
+                        webSearch(query)
+                    },
+                    onClose: { withAnimation(.snappy) { isSearching = false } }
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .zIndex(1)
+            }
         }
-        .scrollDismissesKeyboard(.immediately)
         .background { WallpaperView(theme: theme) }
         .preferredColorScheme(theme.isDark ? .dark : .light)
         .animation(.snappy, value: store.state.apps)
         .animation(.snappy, value: store.state.groups)
+        .animation(.snappy, value: store.state.sectionOrder)
         .sheet(item: $activeSheet) { sheet in
             sheetContent(sheet)
                 .environmentObject(store)
@@ -66,15 +98,12 @@ struct HomeView: View {
         }
         .onOpenURL(perform: handleIncomingURL)
         .onAppear {
-            if theme.searchOnOpen { focusSearchSoon() }
+            if theme.searchOnOpen { openSearch() }
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
-                if theme.searchOnOpen {
-                    query = ""
-                    focusSearchSoon()
-                }
+                if theme.searchOnOpen { openSearch() }
             case .background:
                 store.saveNow()
             default:
@@ -83,7 +112,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Header & search
+    // MARK: - Header
 
     private var header: some View {
         HStack(alignment: .top) {
@@ -112,7 +141,7 @@ struct HomeView: View {
                 Menu {
                     Button { activeSheet = .add(nil) } label: { Label("Add App", systemImage: "plus.app") }
                     Button { withAnimation { isEditing = true } } label: { Label("Edit Layout", systemImage: "square.grid.2x2") }
-                    Button { activeSheet = .groups } label: { Label("Groups", systemImage: "folder") }
+                    Button { activeSheet = .groups } label: { Label("Groups & Dock", systemImage: "rectangle.3.group") }
                     Button { activeSheet = .theme } label: { Label("Design", systemImage: "paintpalette") }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -125,114 +154,85 @@ struct HomeView: View {
         }
         .foregroundStyle(theme.labelColor)
         .shadow(color: .black.opacity(theme.isDark ? 0.25 : 0), radius: 3, y: 1)
+        .padding(.bottom, 4)
     }
 
-    private var searchBar: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search apps", text: $query)
-                    .focused($searchFocused)
-                    .submitLabel(.go)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .onSubmit(launchTopResult)
-                if !query.isEmpty {
-                    Button {
-                        query = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .accessibilityLabel("Clear search")
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    // MARK: - Search button
 
-            if searchFocused {
-                Button("Cancel") {
-                    query = ""
-                    searchFocused = false
-                }
+    private var searchButton: some View {
+        Button(action: openSearch) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(theme.labelColor)
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-            }
+                .frame(width: 58, height: 58)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(.white.opacity(0.15), lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
         }
-        .animation(.snappy, value: searchFocused)
+        .buttonStyle(.plain)
+        .accessibilityLabel("Search apps")
     }
 
-    // MARK: - Grouped grid
-
-    /// Recently Used and Most Used first, then your groups, then Needs Attention.
-    @ViewBuilder
-    private var groupsContent: some View {
-        smartSection(.recent, apps: store.recentApps(limit: theme.columns))
-        smartSection(.mostUsed, apps: store.mostUsedApps(limit: theme.columns))
-        ForEach(store.state.groups) { group in
-            groupSection(group)
-        }
-        smartSection(.attention, apps: store.attentionApps)
+    private func openSearch() {
+        withAnimation(.snappy) { isSearching = true }
     }
 
-    // MARK: - Automatic sections
+    // MARK: - Sections
 
-    enum SmartSection: String {
-        case recent, mostUsed, attention
-
-        var title: String {
-            switch self {
-            case .recent: return "Recently Used"
-            case .mostUsed: return "Most Used"
-            case .attention: return "Needs Attention"
-            }
-        }
-
-        var symbol: String {
-            switch self {
-            case .recent: return "clock.arrow.circlepath"
-            case .mostUsed: return "flame.fill"
-            case .attention: return "flag.fill"
-            }
-        }
-
-        var emptyText: String {
-            switch self {
-            case .recent, .mostUsed: return "Apps you open from Go will show up here."
-            case .attention: return "Long-press an app and choose Needs Attention to flag it here."
-            }
-        }
-    }
-
-    private func smartSection(_ kind: SmartSection, apps: [LauncherApp]) -> some View {
-        let collapsed = store.isSectionCollapsed(kind.rawValue)
-        return VStack(alignment: .leading, spacing: 12) {
-            Button {
-                store.toggleSection(kind.rawValue)
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: kind.symbol)
+    private func sectionHeader(title: String, symbol: String?, count: Int?, collapsed: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                if let symbol {
+                    Image(systemName: symbol)
                         .font(.system(size: 12, weight: .bold))
                         .opacity(0.75)
-                    Text(kind.title)
-                        .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
-                    if (collapsed || kind == .attention) && !apps.isEmpty {
-                        Text("\(apps.count)")
-                            .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
-                            .opacity(0.6)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .bold))
-                        .rotationEffect(.degrees(collapsed ? -90 : 0))
+                }
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
+                if let count {
+                    Text("\(count)")
+                        .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
                         .opacity(0.6)
                 }
-                .foregroundStyle(theme.labelColor)
-                .contentShape(Rectangle())
+                Spacer()
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12, weight: .bold))
+                    .rotationEffect(.degrees(collapsed ? -90 : 0))
+                    .opacity(0.6)
             }
-            .buttonStyle(.plain)
+            .foregroundStyle(theme.labelColor)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
 
+    private func sectionCard<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12, content: content)
+            .padding(theme.showGroupCards ? 14 : 4)
+            .background {
+                if theme.showGroupCards {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
+            }
+    }
+
+    private func smartApps(_ kind: SmartSection) -> [LauncherApp] {
+        switch kind {
+        case .recent: return store.recentApps(limit: theme.columns)
+        case .mostUsed: return store.mostUsedApps(limit: theme.columns)
+        case .attention: return store.attentionApps
+        }
+    }
+
+    private func smartSection(_ kind: SmartSection) -> some View {
+        let apps = smartApps(kind)
+        let collapsed = store.isSectionCollapsed(kind.rawValue)
+        let showCount = (collapsed || kind == .attention) && !apps.isEmpty
+        return sectionCard {
+            sectionHeader(title: kind.title, symbol: kind.symbol, count: showCount ? apps.count : nil, collapsed: collapsed) {
+                store.toggleSection(kind.rawValue)
+            }
             if !collapsed {
                 if apps.isEmpty {
                     Text(kind.emptyText)
@@ -254,39 +254,14 @@ struct HomeView: View {
                 }
             }
         }
-        .padding(theme.showGroupCards ? 14 : 4)
-        .background {
-            if theme.showGroupCards {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            }
-        }
     }
 
     private func groupSection(_ group: AppGroup) -> some View {
         let apps = store.apps(in: group.id)
-        return VStack(alignment: .leading, spacing: 12) {
-            Button {
+        return sectionCard {
+            sectionHeader(title: group.name, symbol: nil, count: group.isCollapsed ? apps.count : nil, collapsed: group.isCollapsed) {
                 store.toggleCollapsed(group.id)
-            } label: {
-                HStack(spacing: 6) {
-                    Text(group.name)
-                        .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
-                    if group.isCollapsed {
-                        Text("\(apps.count)")
-                            .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
-                            .opacity(0.6)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .bold))
-                        .rotationEffect(.degrees(group.isCollapsed ? -90 : 0))
-                        .opacity(0.6)
-                }
-                .foregroundStyle(theme.labelColor)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
             .dropDestination(for: String.self) { items, _ in
                 dropApp(items) { store.move(appID: $0, toGroup: group.id) }
             }
@@ -301,7 +276,7 @@ struct HomeView: View {
                     }
                 }
                 if apps.isEmpty && !isEditing {
-                    Text("Empty — drag apps here or tap ••• › Edit Layout")
+                    Text("Empty. Drag apps here or tap ••• › Edit Layout.")
                         .font(.footnote)
                         .foregroundStyle(theme.labelColor.opacity(0.6))
                         .frame(maxWidth: .infinity, minHeight: 44)
@@ -309,13 +284,6 @@ struct HomeView: View {
                             dropApp(items) { store.move(appID: $0, toGroup: group.id) }
                         }
                 }
-            }
-        }
-        .padding(theme.showGroupCards ? 14 : 4)
-        .background {
-            if theme.showGroupCards {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(.ultraThinMaterial)
             }
         }
     }
@@ -385,6 +353,11 @@ struct HomeView: View {
             Label(app.needsAttention ? "Clear Needs Attention" : "Needs Attention",
                   systemImage: app.needsAttention ? "flag.slash" : "flag")
         }
+        if store.state.showDock {
+            Button { store.toggleDock(app.id) } label: {
+                Label(app.isDocked ? "Remove from Dock" : "Add to Dock", systemImage: "dock.rectangle")
+            }
+        }
         Menu {
             ForEach(store.state.groups) { group in
                 Button(group.name) { store.move(appID: app.id, toGroup: group.id) }
@@ -404,52 +377,23 @@ struct HomeView: View {
         return true
     }
 
-    // MARK: - Search results
+    // MARK: - Dock (optional, ••• › Groups & Dock)
 
-    @ViewBuilder
-    private var searchContent: some View {
-        let matches = results
-        if matches.isEmpty {
-            Text("No apps match “\(query)”")
-                .font(.system(.subheadline, design: theme.fontStyle.design))
-                .foregroundStyle(theme.labelColor.opacity(0.7))
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
-        } else {
-            LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(matches) { app in
-                    Button { launch(app) } label: { AppIconView(app: app, theme: theme) }
-                        .buttonStyle(.plain)
-                        .contextMenu { contextMenu(for: app) }
+    private var dock: some View {
+        HStack(spacing: 0) {
+            ForEach(store.dockApps) { app in
+                Button { launch(app) } label: {
+                    AppIconView(app: app, theme: theme, showLabel: false)
                 }
-            }
-            .padding(theme.showGroupCards ? 14 : 4)
-            .background {
-                if theme.showGroupCards {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous).fill(.ultraThinMaterial)
-                }
-            }
-            Text("Press Go to open \(matches[0].name)")
-                .font(.footnote)
-                .foregroundStyle(theme.labelColor.opacity(0.6))
+                .buttonStyle(.plain)
                 .frame(maxWidth: .infinity)
+                .contextMenu { contextMenu(for: app) }
+            }
         }
-
-        Button {
-            var components = URLComponents()
-            components.scheme = "x-web-search"
-            components.host = ""
-            components.queryItems = [URLQueryItem(name: "q", value: query)]
-            if let url = components.url { openURL(url) }
-        } label: {
-            Label("Search the web for “\(query)”", systemImage: "safari")
-                .font(.system(.subheadline, design: theme.fontStyle.design).weight(.medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(theme.labelColor)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
     }
 
     // MARK: - Sheets
@@ -498,20 +442,19 @@ struct HomeView: View {
         openURL(url) { accepted in
             if accepted {
                 store.recordLaunch(app.id)
-                query = ""
-                searchFocused = false
+                withAnimation(.snappy) { isSearching = false }
             } else {
                 launchError = "iOS couldn't open \(app.name). The app may not be installed, or its link changed. Edit the icon and try the Shortcut option instead."
             }
         }
     }
 
-    private func launchTopResult() {
-        if let first = results.first { launch(first) }
-    }
-
-    private func focusSearchSoon() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { searchFocused = true }
+    private func webSearch(_ query: String) {
+        var components = URLComponents()
+        components.scheme = "x-web-search"
+        components.host = ""
+        components.queryItems = [URLQueryItem(name: "q", value: query)]
+        if let url = components.url { openURL(url) }
     }
 
     /// golauncher://search        → opens straight into search
@@ -520,8 +463,7 @@ struct HomeView: View {
         guard url.scheme == "golauncher" else { return }
         switch url.host {
         case "search":
-            query = ""
-            focusSearchSoon()
+            openSearch()
         case "open":
             let name = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                 .queryItems?.first(where: { $0.name == "name" })?.value ?? ""
@@ -529,6 +471,177 @@ struct HomeView: View {
         default:
             break
         }
+    }
+}
+
+/// Full-screen search that opens from the search button: recent searches, suggestions, live results.
+struct SearchOverlay: View {
+    @EnvironmentObject private var store: LauncherStore
+    let theme: Theme
+    let onLaunch: (LauncherApp, String) -> Void
+    let onWebSearch: (String) -> Void
+    let onClose: () -> Void
+
+    @State private var query = ""
+    @FocusState private var focused: Bool
+
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: max(theme.columns, 1))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    TextField("Search apps", text: $query)
+                        .focused($focused)
+                        .submitLabel(.go)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .onSubmit(launchTopResult)
+                    if !query.isEmpty {
+                        Button { query = "" } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        }
+                        .accessibilityLabel("Clear search")
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 11)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                Button("Cancel", action: onClose)
+                    .foregroundStyle(theme.labelColor)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    if query.trimmingCharacters(in: .whitespaces).isEmpty {
+                        recentSearches
+                        suggestions
+                    } else {
+                        results
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .font(.system(.body, design: theme.fontStyle.design))
+        .foregroundStyle(theme.labelColor)
+        .background {
+            ZStack {
+                WallpaperView(theme: theme)
+                Rectangle().fill(.ultraThinMaterial).ignoresSafeArea()
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { focused = true }
+        }
+    }
+
+    @ViewBuilder
+    private var recentSearches: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Recent Searches").font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
+                Spacer()
+                if !store.state.recentSearches.isEmpty {
+                    Button("Clear") { store.clearRecentSearches() }
+                        .font(.system(size: 14, weight: .medium))
+                        .opacity(0.75)
+                }
+            }
+            .padding(.bottom, 4)
+
+            if store.state.recentSearches.isEmpty {
+                Text("Your searches will show up here.")
+                    .font(.footnote)
+                    .opacity(0.6)
+            } else {
+                ForEach(store.state.recentSearches, id: \.self) { recent in
+                    HStack(spacing: 12) {
+                        Button {
+                            query = recent
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "clock.arrow.circlepath").opacity(0.6)
+                                Text(recent)
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        Button {
+                            store.removeRecentSearch(recent)
+                        } label: {
+                            Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).opacity(0.5)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Remove \(recent) from recent searches")
+                    }
+                    .padding(.vertical, 10)
+                    Divider().opacity(0.4)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var suggestions: some View {
+        let recentApps = store.recentApps(limit: theme.columns)
+        if !recentApps.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Suggestions").font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(recentApps) { app in
+                        Button { onLaunch(app, "") } label: { AppIconView(app: app, theme: theme) }
+                            .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var results: some View {
+        let matches = store.search(query)
+        if matches.isEmpty {
+            Text("No apps match “\(query)”")
+                .opacity(0.7)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 8)
+        } else {
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(matches) { app in
+                    Button { onLaunch(app, query) } label: { AppIconView(app: app, theme: theme) }
+                        .buttonStyle(.plain)
+                }
+            }
+            Text("Press Go to open \(matches[0].name)")
+                .font(.footnote)
+                .opacity(0.6)
+                .frame(maxWidth: .infinity)
+        }
+        Button {
+            onWebSearch(query)
+        } label: {
+            Label("Search the web for “\(query)”", systemImage: "safari")
+                .font(.system(.subheadline, design: theme.fontStyle.design).weight(.medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func launchTopResult() {
+        if let first = store.search(query).first { onLaunch(first, query) }
     }
 }
 

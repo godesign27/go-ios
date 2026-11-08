@@ -80,7 +80,40 @@ body {
 .round-btn svg { width: 20px; height: 20px; }
 .done-btn { border: 0; cursor: pointer; font: 700 16px var(--app-font); color: var(--label); background: var(--material); backdrop-filter: blur(20px); padding: 9px 16px; border-radius: 999px; }
 
-.searchrow { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; }
+.searchrow { display: flex; gap: 10px; align-items: center; padding: 0 16px 14px; }
+.bottom-bar { position: absolute; left: 12px; right: 12px; bottom: 18px; z-index: 5; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; pointer-events: none; }
+.bottom-bar > * { pointer-events: auto; }
+.bottom-bar #dock { align-self: stretch; }
+.bottom-bar #dock:empty { display: none; }
+.fab { width: 58px; height: 58px; border-radius: 50%; border: .5px solid rgba(255, 255, 255, .18); display: grid; place-items: center; cursor: pointer; color: var(--label); background: var(--material); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); box-shadow: 0 8px 22px rgba(0, 0, 0, .28); margin-right: 8px; transition: transform .15s; }
+.fab:active { transform: scale(.92); }
+.fab svg { width: 24px; height: 24px; stroke-width: 2.4; }
+.dock { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 14px 8px; border-radius: 32px; background: var(--material); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+.dock .tile { width: min(var(--icon), 64px); }
+.search-view { position: absolute; inset: 0; z-index: 20; padding-top: 58px; display: flex; flex-direction: column; background: linear-gradient(var(--bg-top), var(--bg-bottom)); animation: rise .25s cubic-bezier(.2, .9, .3, 1); }
+.search-view::before { content: ""; position: absolute; inset: 0; background: var(--search-tint); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); z-index: -1; }
+@keyframes rise { from { opacity: 0; transform: translateY(40px); } }
+.sv-body { flex: 1; overflow-y: auto; padding: 4px 16px 30px; scrollbar-width: none; }
+.sv-title { display: flex; justify-content: space-between; align-items: baseline; font: 700 15px var(--app-font); margin: 6px 0 6px; text-shadow: var(--label-shadow); }
+.sv-title button { border: 0; background: none; color: var(--label); opacity: .75; font: 600 14px var(--app-font); cursor: pointer; padding: 0; }
+.recent { display: flex; align-items: center; gap: 12px; border-bottom: .5px solid color-mix(in srgb, var(--label) 25%, transparent); }
+.recent .use { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: none; color: var(--label); font: 500 16px var(--app-font); padding: 12px 0; cursor: pointer; text-align: left; }
+.recent .use svg { width: 17px; height: 17px; opacity: .6; flex: none; }
+.recent .del { border: 0; background: none; color: var(--label); opacity: .5; cursor: pointer; padding: 6px; display: grid; }
+.recent .del svg { width: 14px; height: 14px; }
+.sv-empty { font-size: 13px; opacity: .65; padding: 6px 0 4px; }
+.sv-gap { height: 22px; }
+.sec-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 10px; min-height: 48px; font-size: 16px; background: var(--row); }
+.sec-row + .sec-row { border-top: .5px solid var(--sep); }
+.sec-row .handle { color: var(--row-muted); cursor: grab; display: grid; padding: 4px; touch-action: none; }
+.sec-row .handle svg, .sec-row .kind svg { width: 18px; height: 18px; }
+.sec-row .kind { color: var(--row-muted); display: grid; }
+.sec-row .name { flex: 1; min-width: 0; }
+.sec-row input[type="text"] { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: 400 16px var(--body); color: var(--row-fg); }
+.sec-row.dragging { opacity: .4; }
+.sec-row.drop-above { box-shadow: inset 0 2px 0 var(--tint); }
+.sec-row.hidden-sec .name { color: var(--row-muted); }
+.sec-row .moves { display: flex; }
 .searchbar { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 11px 12px; border-radius: 14px; background: var(--material); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 .searchbar svg { width: 18px; height: 18px; opacity: .6; flex: none; }
 .searchbar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: 500 16px var(--app-font); color: var(--label); }
@@ -244,14 +277,21 @@ body {
           <div id="clock"><div class="date" id="dateText"></div><div class="time" id="timeText"></div></div>
           <div id="headBtn"></div>
         </div>
+        <div id="content"></div>
+      </div>
+      <div class="bottom-bar" id="bottomBar">
+        <button class="fab" id="fab" type="button" data-act="search-open" aria-label="Search apps"><i data-lucide="search"></i></button>
+        <div id="dock"></div>
+      </div>
+      <div class="search-view" id="searchView" hidden>
         <div class="searchrow">
           <label class="searchbar"><i data-lucide="search"></i>
             <input id="q" type="text" placeholder="Search apps" autocomplete="off" enterkeyhint="go" aria-label="Search apps">
             <button class="clear-q" id="clearQ" type="button" hidden aria-label="Clear search"><i data-lucide="circle-x"></i></button>
           </label>
-          <button class="cancel-q" id="cancelQ" type="button" hidden>Cancel</button>
+          <button class="cancel-q" id="cancelQ" type="button">Cancel</button>
         </div>
-        <div id="content"></div>
+        <div class="sv-body" id="svBody"></div>
       </div>
       <div class="homebar"></div>
       <div id="overlay"></div>
@@ -326,10 +366,11 @@ body {
     const history = { Messages: [42, 3], Safari: [35, 25], Spotify: [28, 9], Claude: [21, 1], Mail: [18, 140], Maps: [9, 300], ChatGPT: [12, 55], Photos: [7, 600], Weather: [15, 900] };
     apps.forEach(a => { const h = history[a.name]; if (h) { a.launchCount = h[0]; a.lastLaunched = now - h[1] * min; } });
     apps.forEach(a => { if (a.name === "Reminders" || a.name === "Calendar") a.needsAttention = true; });
-    return { groups: g, apps, theme: { ...DEFAULT_THEME }, collapsedSections: [] };
+    apps.forEach(a => { if (["Phone", "Messages", "Safari", "Music"].includes(a.name)) a.isDocked = true; });
+    return { groups: g, apps, theme: { ...DEFAULT_THEME }, collapsedSections: [], sectionOrder: [], hiddenSections: [], showDock: false, recentSearches: ["spotify", "claude", "maps", "weather"] };
   }
 
-  const KEY = "go-launcher-preview-v2";
+  const KEY = "go-launcher-preview-v3";
   let state;
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
   if (!state || !state.apps || !state.groups || !state.theme) state = seed();
@@ -345,6 +386,21 @@ body {
   const recentApps = n => state.apps.filter(a => a.lastLaunched).sort((x, y) => y.lastLaunched - x.lastLaunched).slice(0, n);
   const mostUsedApps = n => state.apps.filter(a => a.launchCount > 0).sort((x, y) => y.launchCount - x.launchCount).slice(0, n);
   const attentionApps = () => state.apps.filter(a => a.needsAttention);
+  const dockApps = () => state.apps.filter(a => a.isDocked).slice(0, 5);
+  const SMART_KEYS = ["recent", "mostUsed", "attention"];
+  // Every section in display order: automatic section keys and group ids. New groups land before Needs Attention.
+  function orderedKeys() {
+    const gk = state.groups.map(g => g.id), valid = new Set([...gk, ...SMART_KEYS]);
+    let keys = (state.sectionOrder || []).filter(k => valid.has(k));
+    if (!keys.length) keys = ["recent", "mostUsed", ...gk, "attention"];
+    gk.forEach(k => { if (!keys.includes(k)) { const i = keys.indexOf("attention"); i >= 0 ? keys.splice(i, 0, k) : keys.push(k); } });
+    SMART_KEYS.forEach(k => { if (!keys.includes(k)) keys.push(k); });
+    return keys;
+  }
+  function addRecentSearch(q) {
+    q = q.trim(); if (!q) return;
+    state.recentSearches = [q, ...(state.recentSearches || []).filter(x => x.toLowerCase() !== q.toLowerCase())].slice(0, 8);
+  }
   const SMART = {
     recent: ["Recently Used", "history", "Apps you open from Go will show up here."],
     mostUsed: ["Most Used", "flame", "Apps you open from Go will show up here."],
@@ -385,6 +441,7 @@ body {
     s.setProperty("--icon", t.iconSize + "px"); s.setProperty("--corner", t.cornerFactor); s.setProperty("--cols", t.columns);
     s.setProperty("--material", t.isDark ? "rgba(255,255,255,.13)" : "rgba(255,255,255,.5)");
     s.setProperty("--label-shadow", t.isDark ? "0 1px 2px rgba(0,0,0,.35)" : "none");
+    s.setProperty("--search-tint", t.isDark ? "rgba(10,10,20,.35)" : "rgba(255,255,255,.4)");
     screen.classList.toggle("light", !t.isDark);
     $("clock").hidden = !t.showClock;
   }
@@ -403,13 +460,7 @@ body {
   function renderContent() {
     const t = state.theme;
     content.className = (t.showGroupCards ? "cards " : "") + (editing ? "editing" : "");
-    if (query.trim()) {
-      const r = search(query);
-      content.innerHTML = (r.length
-        ? `<div class="group"><div class="grid" style="margin-top:0">${r.map(a => cellHTML(a, false)).join("")}</div></div><div class="hint">Press Enter to open ${esc(r[0].name)}</div>`
-        : `<div class="hint" style="font-size:14px">No apps match “${esc(query)}”</div>`)
-        + `<button class="web-btn" data-act="web" type="button"><i data-lucide="compass"></i>Search the web for “${esc(query)}”</button>`;
-    } else {
+    {
       const smart = (key, apps) => {
         const [title, icon, empty] = SMART[key], collapsed = (state.collapsedSections || []).includes(key);
         return `<section class="group smart">
@@ -418,7 +469,7 @@ body {
           ${collapsed ? "" : apps.length ? `<div class="grid">${apps.map(a => cellHTML(a, false, true)).join("")}</div>` : `<div class="empty" style="text-align:left">${empty}</div>`}
         </section>`;
       };
-      content.innerHTML = smart("recent", recentApps(t.columns)) + smart("mostUsed", mostUsedApps(t.columns)) + state.groups.map(g => {
+      const groupHTML = g => {
         const apps = appsIn(g.id);
         return `<section class="group">
           <button class="ghead ${g.isCollapsed ? "collapsed" : ""}" type="button" data-act="collapse" data-gid="${g.id}">
@@ -426,8 +477,40 @@ body {
           ${g.isCollapsed ? "" : `<div class="grid">${apps.map(a => cellHTML(a, editing)).join("")}${editing ? `<button class="cell addtile" type="button" data-act="add" data-gid="${g.id}"><span class="tile"><i data-lucide="plus"></i></span>${t.showLabels ? '<span class="label">Add</span>' : ""}</button>` : ""}</div>
           ${!apps.length && !editing ? `<div class="empty">Empty. Drag apps here, or use ••• › Edit Layout.</div>` : ""}`}
         </section>`;
-      }).join("") + smart("attention", attentionApps());
+      };
+      const smartApps = { recent: () => recentApps(t.columns), mostUsed: () => mostUsedApps(t.columns), attention: attentionApps };
+      content.innerHTML = orderedKeys().filter(k => !(state.hiddenSections || []).includes(k)).map(k => {
+        if (smartApps[k]) return smart(k, smartApps[k]());
+        const g = state.groups.find(x => x.id === k); return g ? groupHTML(g) : "";
+      }).join("");
     }
+    const d = state.showDock ? dockApps() : [];
+    $("dock").innerHTML = d.length ? `<div class="dock">${d.map(a => `<button class="cell" type="button" data-act="app" data-id="${a.id}" aria-label="${esc(a.name)}">${appTile(a)}</button>`).join("")}</div>` : "";
+    $("fab").hidden = editing;
+    $("scroll").style.paddingBottom = d.length ? "200px" : "100px";
+  }
+
+  // ---------- Search screen ----------
+  function openSearch() {
+    query = ""; qInput.value = ""; $("searchView").hidden = false; syncSearchUI(); renderSearch();
+    setTimeout(() => qInput.focus(), 60);
+  }
+  function closeSearch() { query = ""; qInput.value = ""; qInput.blur(); $("searchView").hidden = true; }
+  function renderSearch() {
+    const t = state.theme, body = $("svBody"), q = query.trim();
+    const grid = apps => `<div class="grid" style="margin-top:8px">${apps.map(a => `<button class="cell still" type="button" data-act="search-launch" data-id="${a.id}" aria-label="${esc(a.name)}">${appTile(a)}${t.showLabels ? `<span class="label">${esc(a.name)}</span>` : ""}</button>`).join("")}</div>`;
+    if (!q) {
+      const rs = state.recentSearches || [], sugg = recentApps(t.columns);
+      body.innerHTML = `<div class="sv-title">Recent Searches${rs.length ? `<button type="button" data-act="recent-clear">Clear</button>` : ""}</div>`
+        + (rs.length ? rs.map(r => `<div class="recent"><button class="use" type="button" data-act="recent-use" data-q="${esc(r)}"><i data-lucide="history"></i>${esc(r)}</button><button class="del" type="button" data-act="recent-del" data-q="${esc(r)}" aria-label="Remove ${esc(r)}"><i data-lucide="x"></i></button></div>`).join("")
+          : `<div class="sv-empty">Your searches will show up here.</div>`)
+        + (sugg.length ? `<div class="sv-gap"></div><div class="sv-title">Suggestions</div>${grid(sugg)}` : "");
+    } else {
+      const r = search(q);
+      body.innerHTML = (r.length ? grid(r) + `<div class="hint">Press Enter to open ${esc(r[0].name)}</div>` : `<div class="hint" style="font-size:14px">No apps match “${esc(q)}”</div>`)
+        + `<button class="web-btn" data-act="web" type="button"><i data-lucide="compass"></i>Search the web for “${esc(q)}”</button>`;
+    }
+    icons();
   }
   function render() { applyTheme(); renderHeadBtn(); renderContent(); icons(); save(); }
 
@@ -447,7 +530,7 @@ body {
   function launch(a) {
     const url = launchURL(a.launch);
     if (!url) { toast(`${esc(a.name)} has no link yet. Long-press it and choose Edit Icon.`); return; }
-    a.launchCount++; a.lastLaunched = Date.now(); a.needsAttention = false; query = ""; qInput.value = ""; syncSearchUI(); render();
+    a.launchCount++; a.lastLaunched = Date.now(); a.needsAttention = false; closeSearch(); render();
     toast(`On iPhone this opens <b>${esc(a.name)}</b><br><code>${esc(url)}</code>`);
   }
 
@@ -457,7 +540,7 @@ body {
     overlay.innerHTML = `<div class="scrim clear" data-act="close"></div><div class="menu" role="menu">
       <button data-act="add" type="button" role="menuitem">Add App<i data-lucide="square-plus"></i></button>
       <button data-act="edit-layout" type="button" role="menuitem">Edit Layout<i data-lucide="layout-grid"></i></button>
-      <button data-act="groups" type="button" role="menuitem">Groups<i data-lucide="folder"></i></button>
+      <button data-act="groups" type="button" role="menuitem">Groups & Dock<i data-lucide="rows-3"></i></button>
       <button data-act="design" type="button" role="menuitem">Design<i data-lucide="palette"></i></button></div>`;
     icons();
   }
@@ -468,6 +551,7 @@ body {
          <button class="danger" data-act="confirm-remove" data-id="${a.id}" type="button">Remove from Go<i data-lucide="trash-2"></i></button>`
       : `<button data-act="edit" data-id="${a.id}" type="button">Edit Icon<i data-lucide="pencil"></i></button>
          <button data-act="attention" data-id="${a.id}" type="button">${a.needsAttention ? "Clear Needs Attention" : "Needs Attention"}<i data-lucide="${a.needsAttention ? "flag-off" : "flag"}"></i></button>
+         ${state.showDock ? `<button data-act="dock" data-id="${a.id}" type="button">${a.isDocked ? "Remove from Dock" : "Add to Dock"}<i data-lucide="dock"></i></button>` : ""}
          ${state.groups.filter(g => g.id !== a.groupID).map(g => `<button data-act="move" data-id="${a.id}" data-gid="${g.id}" type="button">Move to ${esc(g.name)}<i data-lucide="folder-input"></i></button>`).join("")}
          <button data-act="edit-layout" type="button">Edit Layout<i data-lucide="layout-grid"></i></button>
          <button class="danger" data-act="remove" data-id="${a.id}" type="button">Remove<i data-lucide="trash-2"></i></button>`;
@@ -525,7 +609,8 @@ body {
         <div class="sec-title">Organize</div>
         <div class="box">
           <div class="row"><span>Group</span><select id="edGroup" aria-label="Group">${state.groups.map(g => `<option value="${g.id}" ${g.id === d.groupID ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select></div>
-          <div class="row"><span>Needs attention</span><label class="switch"><input id="edAttn" type="checkbox" ${d.needsAttention ? "checked" : ""}><span></span></label></div></div>
+          <div class="row"><span>Needs attention</span><label class="switch"><input id="edAttn" type="checkbox" ${d.needsAttention ? "checked" : ""}><span></span></label></div>
+          ${state.showDock ? `<div class="row"><span>Show in Dock</span><label class="switch"><input id="edDock" type="checkbox" ${d.isDocked ? "checked" : ""}><span></span></label></div>` : ""}</div>
         ${draftIsNew ? "" : `<div class="box" style="margin-top:26px"><div class="row"><button class="rowbtn danger" data-act="remove" data-id="${d.id}" type="button">Remove from Go</button></div></div>`}
       </div></div>`;
     icons();
@@ -562,20 +647,41 @@ body {
     icons();
   }
 
-  // ---------- Groups ----------
+  // ---------- Groups & Dock ----------
   function renderGroups() {
-    overlay.innerHTML = `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Groups"><div class="grabber"></div>
-      <div class="navbar"><span class="l"></span><h2>Groups</h2><span class="r"><button class="link bold" data-act="close" type="button">Done</button></span></div>
-      <div class="form"><div class="sec-title">Your groups</div><div class="box">
-        ${state.groups.map((g, i) => `<div class="row"><input type="text" data-gname="${g.id}" value="${esc(g.name)}" aria-label="Group name">
-          <span class="val">${appsIn(g.id).length}</span>
-          <button class="gbtn" data-act="g-up" data-gid="${g.id}" type="button" ${i === 0 ? "disabled" : ""} aria-label="Move up"><i data-lucide="chevron-up"></i></button>
-          <button class="gbtn" data-act="g-down" data-gid="${g.id}" type="button" ${i === state.groups.length - 1 ? "disabled" : ""} aria-label="Move down"><i data-lucide="chevron-down"></i></button>
-          <button class="gbtn del" data-act="g-del" data-gid="${g.id}" type="button" ${state.groups.length < 2 ? "disabled" : ""} aria-label="Delete group"><i data-lucide="circle-minus"></i></button></div>`).join("")}
-        </div><div class="sec-foot">Tap a name to rename it. Deleting a group moves its apps into the first remaining group, so no apps are lost.</div>
-        <div class="box" style="margin-top:22px"><div class="row"><button class="rowbtn" data-act="g-new" type="button"><i data-lucide="plus"></i>New Group</button></div></div></div></div>`;
+    const keys = orderedKeys(), hidden = state.hiddenSections || [];
+    const rows = keys.map((k, i) => {
+      const moves = `<span class="moves"><button class="gbtn" data-act="sec-up" data-key="${k}" type="button" ${i === 0 ? "disabled" : ""} aria-label="Move up"><i data-lucide="chevron-up"></i></button><button class="gbtn" data-act="sec-down" data-key="${k}" type="button" ${i === keys.length - 1 ? "disabled" : ""} aria-label="Move down"><i data-lucide="chevron-down"></i></button></span>`;
+      const handle = `<span class="handle" aria-hidden="true"><i data-lucide="grip-vertical"></i></span>`;
+      if (SMART[k]) {
+        const [title, icon] = SMART[k], off = hidden.includes(k);
+        return `<div class="sec-row ${off ? "hidden-sec" : ""}" draggable="true" data-sec="${k}">${handle}<span class="kind"><i data-lucide="${icon}"></i></span><span class="name">${title}</span>${moves}<label class="switch"><input type="checkbox" data-sec-show="${k}" ${off ? "" : "checked"} aria-label="Show ${title}"><span></span></label></div>`;
+      }
+      const g = state.groups.find(x => x.id === k);
+      return `<div class="sec-row" draggable="true" data-sec="${k}">${handle}<span class="kind"><i data-lucide="folder"></i></span><input type="text" data-gname="${g.id}" value="${esc(g.name)}" aria-label="Group name"><span class="val" style="color:var(--row-muted)">${appsIn(g.id).length}</span>${moves}<button class="gbtn del" data-act="g-del" data-gid="${g.id}" type="button" ${state.groups.length < 2 ? "disabled" : ""} aria-label="Delete group"><i data-lucide="circle-minus"></i></button></div>`;
+    }).join("");
+    const scrollTop = overlay.querySelector(".form")?.scrollTop || 0;
+    overlay.innerHTML = `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Groups and Dock"><div class="grabber"></div>
+      <div class="navbar"><span class="l"></span><h2>Groups & Dock</h2><span class="r"><button class="link bold" data-act="close" type="button">Done</button></span></div>
+      <div class="form"><div class="sec-title">Home screen order</div><div class="box" id="secList">${rows}</div>
+        <div class="sec-foot">Drag a row, or use the arrows, to rearrange. Recently Used, Most Used and Needs Attention fill in by themselves; switch one off to hide it. Deleting a group moves its apps into another group, so no apps are lost.</div>
+        <div class="box" style="margin-top:22px"><div class="row"><button class="rowbtn" data-act="g-new" type="button"><i data-lucide="plus"></i>New Group</button></div></div>
+        <div class="sec-title">Dock</div><div class="box"><div class="row"><span>Show Dock</span><label class="switch"><input id="showDock" type="checkbox" ${state.showDock ? "checked" : ""}><span></span></label></div></div>
+        <div class="sec-foot">${state.showDock ? "Long-press any app and choose Add to Dock. The dock holds up to 5 apps." : "Turn on to keep up to 5 favorite apps in a bar at the bottom of the screen."}</div>
+      </div></div>`;
+    overlay.querySelector(".form").scrollTop = scrollTop;
     icons();
   }
+  // Drag rows to rearrange sections.
+  let dragKey = null;
+  overlay.addEventListener("dragstart", e => { const r = e.target.closest(".sec-row"); if (!r) return; dragKey = r.dataset.sec; r.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/x-section", dragKey); e.stopPropagation(); });
+  overlay.addEventListener("dragover", e => { const r = e.target.closest(".sec-row"); if (!r || !dragKey) return; e.preventDefault(); e.stopPropagation(); overlay.querySelectorAll(".drop-above").forEach(x => x.classList.remove("drop-above")); r.classList.add("drop-above"); });
+  overlay.addEventListener("drop", e => {
+    const r = e.target.closest(".sec-row"); if (!r || !dragKey) return; e.preventDefault(); e.stopPropagation();
+    const keys = orderedKeys().filter(k => k !== dragKey); keys.splice(keys.indexOf(r.dataset.sec), 0, dragKey);
+    state.sectionOrder = keys; dragKey = null; render(); renderGroups();
+  });
+  overlay.addEventListener("dragend", () => { dragKey = null; overlay.querySelectorAll(".dragging, .drop-above").forEach(x => x.classList.remove("dragging", "drop-above")); });
 
   // ---------- Design ----------
   function renderDesign() {
@@ -617,15 +723,14 @@ body {
   }
 
   // ---------- Search UI ----------
-  function syncSearchUI() {
-    $("clearQ").hidden = !query; $("cancelQ").hidden = document.activeElement !== qInput && !query;
-  }
-  qInput.addEventListener("input", () => { query = qInput.value; syncSearchUI(); renderContent(); icons(); });
-  qInput.addEventListener("focus", syncSearchUI);
-  qInput.addEventListener("blur", () => setTimeout(syncSearchUI, 120));
-  qInput.addEventListener("keydown", e => { if (e.key === "Enter") { const r = search(query); if (r[0]) launch(r[0]); } if (e.key === "Escape") { query = ""; qInput.value = ""; qInput.blur(); syncSearchUI(); renderContent(); icons(); } });
-  $("clearQ").addEventListener("click", e => { e.preventDefault(); query = ""; qInput.value = ""; qInput.focus(); syncSearchUI(); renderContent(); icons(); });
-  $("cancelQ").addEventListener("click", () => { query = ""; qInput.value = ""; qInput.blur(); syncSearchUI(); renderContent(); icons(); });
+  function syncSearchUI() { $("clearQ").hidden = !query; }
+  qInput.addEventListener("input", () => { query = qInput.value; syncSearchUI(); renderSearch(); });
+  qInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") { const r = search(query); if (r[0]) { addRecentSearch(query); launch(r[0]); } }
+    if (e.key === "Escape") closeSearch();
+  });
+  $("clearQ").addEventListener("click", e => { e.preventDefault(); query = ""; qInput.value = ""; qInput.focus(); syncSearchUI(); renderSearch(); });
+  $("cancelQ").addEventListener("click", closeSearch);
 
   // ---------- Long press / context menu ----------
   let pressTimer = null, longPressed = false;
@@ -678,12 +783,19 @@ body {
       case "menu": openMenu(); break;
       case "close": closeOverlay(); render(); break;
       case "done": editing = false; render(); break;
-      case "edit-layout": closeOverlay(); editing = true; query = ""; qInput.value = ""; syncSearchUI(); render(); break;
+      case "edit-layout": closeOverlay(); editing = true; render(); break;
+      case "search-open": openSearch(); break;
+      case "search-launch": { const a = byId(id); if (a) { addRecentSearch(query); launch(a); } break; }
+      case "recent-use": query = el.dataset.q; qInput.value = query; syncSearchUI(); renderSearch(); qInput.focus(); break;
+      case "recent-del": state.recentSearches = state.recentSearches.filter(x => x !== el.dataset.q); save(); renderSearch(); break;
+      case "recent-clear": state.recentSearches = []; save(); renderSearch(); break;
+      case "dock": { const a = byId(id); if (!a.isDocked && dockApps().length >= 5) { toast("The dock holds up to 5 apps"); return; } a.isDocked = !a.isDocked; closeOverlay(); render(); break; }
+      case "sec-up": case "sec-down": { const k = orderedKeys(), i = k.indexOf(el.dataset.key), j = act === "sec-up" ? i - 1 : i + 1; if (j < 0 || j >= k.length) return; [k[i], k[j]] = [k[j], k[i]]; state.sectionOrder = k; render(); renderGroups(); break; }
       case "collapse": { const g = state.groups.find(x => x.id === gid); g.isCollapsed = !g.isCollapsed; render(); break; }
       case "add": openAdd(gid); break;
       case "groups": renderGroups(); break;
       case "design": renderDesign(); break;
-      case "web": toast(`On iPhone this searches the web for “${esc(query)}” in Safari`); break;
+      case "web": addRecentSearch(query); save(); toast(`On iPhone this searches the web for “${esc(query.trim())}” in Safari`); break;
       case "edit": openEditor(byId(id), false); break;
       case "attention": { const a = byId(id); a.needsAttention = !a.needsAttention; closeOverlay(); render(); toast(a.needsAttention ? `Flagged ${esc(a.name)}. Opening it clears the flag.` : `Cleared ${esc(a.name)}`); break; }
       case "smart-collapse": { const k = el.dataset.key, c = state.collapsedSections || (state.collapsedSections = []); const i = c.indexOf(k); if (i >= 0) c.splice(i, 1); else c.push(k); render(); break; }
@@ -703,9 +815,8 @@ body {
       case "add-custom": openEditor({ id: uid(), name: "", launch: { kind: "url", value: "" }, glyph: { kind: "symbol", value: "star" }, colorHex: "#7C6AF4", secondaryColorHex: null, glyphColorHex: "#FFFFFF", groupID: addGroup, needsAttention: false, keywords: "", launchCount: 0, lastLaunched: null }, true, true); break;
       case "add-pick": openEditor(fromCatalog(cat(el.dataset.name), addGroup), true, true); break;
       // groups
-      case "g-new": state.groups.push({ id: uid(), name: "New Group", isCollapsed: false }); save(); renderGroups(); renderContent(); icons(); break;
-      case "g-up": case "g-down": { const i = state.groups.findIndex(g => g.id === gid), j = act === "g-up" ? i - 1 : i + 1; [state.groups[i], state.groups[j]] = [state.groups[j], state.groups[i]]; save(); renderGroups(); renderContent(); icons(); break; }
-      case "g-del": { if (state.groups.length < 2) return; const rest = state.groups.filter(g => g.id !== gid); state.apps.forEach(a => { if (a.groupID === gid) a.groupID = rest[0].id; }); state.groups = rest; save(); renderGroups(); renderContent(); icons(); break; }
+      case "g-new": { const keys = orderedKeys(), ng = { id: uid(), name: "New Group", isCollapsed: false }; state.groups.push(ng); const i = keys.indexOf("attention"); i >= 0 ? keys.splice(i, 0, ng.id) : keys.push(ng.id); state.sectionOrder = keys; render(); renderGroups(); break; }
+      case "g-del": { if (state.groups.length < 2) return; const rest = state.groups.filter(g => g.id !== gid); state.apps.forEach(a => { if (a.groupID === gid) a.groupID = rest[0].id; }); state.groups = rest; state.sectionOrder = (state.sectionOrder || []).filter(k => k !== gid); render(); renderGroups(); break; }
       // design
       case "preset": Object.assign(state.theme, PRESETS.find(p => p[0] === v)[1]); render(); renderDesign(); break;
       case "cols": state.theme.columns = Math.min(6, Math.max(3, state.theme.columns + Number(v))); $("colN").textContent = state.theme.columns; render(); break;
@@ -740,6 +851,9 @@ body {
     const el = e.target, t = state.theme;
     if (el.id === "edGrad") { draft.secondaryColorHex = el.checked ? "#111827" : null; renderEditor(); }
     else if (el.id === "edAttn") draft.needsAttention = el.checked;
+    else if (el.id === "edDock") draft.isDocked = el.checked;
+    else if (el.id === "showDock") { state.showDock = el.checked; render(); renderGroups(); }
+    else if (el.dataset.secShow) { const k = el.dataset.secShow; state.hiddenSections = (state.hiddenSections || []).filter(x => x !== k); if (!el.checked) state.hiddenSections.push(k); render(); renderGroups(); }
     else if (el.id === "edGroup") draft.groupID = el.value;
     else if (el.id === "edPick" && el.value) {
       const c = cat(el.value); draft.launch.value = c.url;
@@ -751,7 +865,7 @@ body {
     else if (el.id === "fontSel") { t.fontStyle = el.value; render(); }
   });
 
-  $("resetAll").addEventListener("click", () => { state = seed(); editing = false; query = ""; qInput.value = ""; closeOverlay(); syncSearchUI(); render(); toast("Reset to the starter layout"); });
+  $("resetAll").addEventListener("click", () => { state = seed(); editing = false; closeSearch(); closeOverlay(); render(); toast("Reset to the starter layout"); });
 
   tick(); setInterval(tick, 15000);
   render();

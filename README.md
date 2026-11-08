@@ -40,14 +40,15 @@ You need a **Mac with Xcode 15 or later** (free on the Mac App Store) and an iPh
 
 | To… | Do this |
 | --- | --- |
-| Open an app | Tap its icon, or type in search and press **Go** |
+| Open an app | Tap its icon, or tap the search button (bottom right), type, and press **Go** |
 | Add an app | **•••** › **Add App**: pick from the list, or choose **Custom** |
 | Edit an icon (name, symbol, emoji, photo, colors) | Long-press › **Edit Icon** |
 | Rearrange | Long-press an icon and drag it onto another icon or onto a group title |
 | Move to another group | Long-press › **Move to Group** |
 | Edit everything at once | **•••** › **Edit Layout**. Icons wiggle: tap one to edit, **–** to remove, **+** to add |
 | Flag an app to come back to | Long-press › **Needs Attention**. Opening the app clears the flag. |
-| Create, rename, reorder, delete groups | **•••** › **Groups** |
+| Arrange sections, rename/add/delete groups, hide automatic sections | **•••** › **Groups & Dock** |
+| Bring back the bottom dock | **•••** › **Groups & Dock** › **Show Dock**, then long-press apps › **Add to Dock** |
 | Change the look | **•••** › **Design** |
 
 ### When an app won't open: use a Shortcut

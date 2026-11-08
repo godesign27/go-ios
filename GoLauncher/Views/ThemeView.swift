@@ -158,7 +158,7 @@ struct ThemeView: View {
         } header: {
             Text("Layout & behavior")
         } footer: {
-            Text("With “Open straight into search”, the keyboard pops up every time you open Go, so you can type a few letters and press Go to launch.")
+            Text("With “Open straight into search”, Go opens to the search screen every time, keyboard ready, so you can type a few letters and press Go to launch.")
         }
     }
 

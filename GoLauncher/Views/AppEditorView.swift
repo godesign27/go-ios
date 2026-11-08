@@ -298,6 +298,9 @@ struct AppEditorView: View {
                 ForEach(store.state.groups) { Text($0.name).tag($0.id) }
             }
             Toggle("Needs attention", isOn: $draft.needsAttention)
+            if store.state.showDock {
+                Toggle("Show in Dock", isOn: $draft.isDocked)
+            }
         }
     }
 

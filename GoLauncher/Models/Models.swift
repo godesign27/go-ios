@@ -48,6 +48,8 @@ struct LauncherApp: Identifiable, Codable, Hashable {
     var groupID: UUID
     /// Flagged by you to show in the "Needs Attention" section. Cleared when you open the app.
     var needsAttention = false
+    /// Shown in the bottom dock when the dock is turned on.
+    var isDocked = false
     /// Extra words that should match in search (e.g. "chat" for Messages).
     var keywords: String = ""
     var launchCount = 0
@@ -78,4 +80,54 @@ struct LauncherState: Codable {
     var theme: Theme
     /// Keys of collapsed automatic sections ("recent", "mostUsed", "attention").
     var collapsedSections: [String] = []
+    /// Display order of every section: automatic section keys and group IDs.
+    var sectionOrder: [String] = []
+    /// Automatic sections the user turned off.
+    var hiddenSections: [String] = []
+    var showDock = false
+    /// Newest first.
+    var recentSearches: [String] = []
+}
+
+/// Sections Go fills in by itself.
+enum SmartSection: String, CaseIterable {
+    case recent, mostUsed, attention
+
+    var title: String {
+        switch self {
+        case .recent: return "Recently Used"
+        case .mostUsed: return "Most Used"
+        case .attention: return "Needs Attention"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .recent: return "clock.arrow.circlepath"
+        case .mostUsed: return "flame.fill"
+        case .attention: return "flag.fill"
+        }
+    }
+
+    var emptyText: String {
+        switch self {
+        case .recent, .mostUsed: return "Apps you open from Go will show up here."
+        case .attention: return "Long-press an app and choose Needs Attention to flag it here."
+        }
+    }
+}
+
+/// One entry in the home screen's section list.
+enum HomeSection: Identifiable {
+    case smart(SmartSection)
+    case group(AppGroup)
+
+    var key: String {
+        switch self {
+        case .smart(let kind): return kind.rawValue
+        case .group(let group): return group.id.uuidString
+        }
+    }
+
+    var id: String { key }
 }

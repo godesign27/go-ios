@@ -44,6 +44,88 @@ final class LauncherStore: ObservableObject {
         state.apps.filter(\.needsAttention)
     }
 
+    var dockApps: [LauncherApp] {
+        Array(state.apps.filter(\.isDocked).prefix(5))
+    }
+
+    // MARK: - Section order
+
+    /// Every section in display order. New groups land before Needs Attention.
+    var sections: [HomeSection] {
+        orderedKeys.compactMap(section(for:))
+    }
+
+    /// Sections shown on the home screen (hidden automatic sections left out).
+    var visibleSections: [HomeSection] {
+        sections.filter { !state.hiddenSections.contains($0.key) }
+    }
+
+    private func section(for key: String) -> HomeSection? {
+        if let smart = SmartSection(rawValue: key) { return .smart(smart) }
+        if let group = state.groups.first(where: { $0.id.uuidString == key }) { return .group(group) }
+        return nil
+    }
+
+    private var orderedKeys: [String] {
+        let groupKeys = state.groups.map(\.id.uuidString)
+        let valid = Set(groupKeys + SmartSection.allCases.map(\.rawValue))
+        var keys = state.sectionOrder.filter { valid.contains($0) }
+        if keys.isEmpty {
+            keys = [SmartSection.recent.rawValue, SmartSection.mostUsed.rawValue] + groupKeys + [SmartSection.attention.rawValue]
+        }
+        for key in groupKeys where !keys.contains(key) {
+            if let attention = keys.firstIndex(of: SmartSection.attention.rawValue) {
+                keys.insert(key, at: attention)
+            } else {
+                keys.append(key)
+            }
+        }
+        for smart in SmartSection.allCases where !keys.contains(smart.rawValue) {
+            keys.append(smart.rawValue)
+        }
+        return keys
+    }
+
+    func moveSections(fromOffsets source: IndexSet, toOffset destination: Int) {
+        var keys = orderedKeys
+        keys.move(fromOffsets: source, toOffset: destination)
+        state.sectionOrder = keys
+    }
+
+    func isSectionHidden(_ key: String) -> Bool {
+        state.hiddenSections.contains(key)
+    }
+
+    func setSection(_ key: String, hidden: Bool) {
+        state.hiddenSections.removeAll { $0 == key }
+        if hidden { state.hiddenSections.append(key) }
+    }
+
+    func renameGroup(_ groupID: UUID, to name: String) {
+        guard let index = state.groups.firstIndex(where: { $0.id == groupID }) else { return }
+        state.groups[index].name = name
+    }
+
+    // MARK: - Recent searches
+
+    func addRecentSearch(_ query: String) {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        var recents = state.recentSearches.filter { $0.caseInsensitiveCompare(trimmed) != .orderedSame }
+        recents.insert(trimmed, at: 0)
+        state.recentSearches = Array(recents.prefix(8))
+    }
+
+    func removeRecentSearch(_ query: String) {
+        state.recentSearches.removeAll { $0 == query }
+    }
+
+    func clearRecentSearches() {
+        state.recentSearches = []
+    }
+
+    // MARK: - Collapsing
+
     func isSectionCollapsed(_ key: String) -> Bool {
         state.collapsedSections.contains(key)
     }
@@ -115,6 +197,11 @@ final class LauncherStore: ObservableObject {
         state.apps.removeAll { $0.id == appID }
     }
 
+    func toggleDock(_ appID: UUID) {
+        guard let index = state.apps.firstIndex(where: { $0.id == appID }) else { return }
+        state.apps[index].isDocked.toggle()
+    }
+
     func toggleAttention(_ appID: UUID) {
         guard let index = state.apps.firstIndex(where: { $0.id == appID }) else { return }
         state.apps[index].needsAttention.toggle()
@@ -163,7 +250,16 @@ final class LauncherStore: ObservableObject {
     @discardableResult
     func addGroup(named name: String) -> UUID {
         let group = AppGroup(name: name)
+        let keys = orderedKeys
         state.groups.append(group)
+        // Place the new group just before Needs Attention (or at the end).
+        var newKeys = keys
+        if let attention = newKeys.firstIndex(of: SmartSection.attention.rawValue) {
+            newKeys.insert(group.id.uuidString, at: attention)
+        } else {
+            newKeys.append(group.id.uuidString)
+        }
+        state.sectionOrder = newKeys
         return group.id
     }
 
@@ -174,14 +270,15 @@ final class LauncherStore: ObservableObject {
 
     /// Deletes groups, moving their apps into the first group that remains.
     /// The last group can't be deleted.
-    func deleteGroups(at offsets: IndexSet) {
-        let doomed = Set(offsets.map { state.groups[$0].id })
+    func deleteGroups(ids: Set<UUID>) {
+        let doomed = ids
         guard let fallback = state.groups.first(where: { !doomed.contains($0.id) }) else { return }
         var newState = state
         for index in newState.apps.indices where doomed.contains(newState.apps[index].groupID) {
             newState.apps[index].groupID = fallback.id
         }
         newState.groups.removeAll { doomed.contains($0.id) }
+        newState.sectionOrder.removeAll { key in doomed.contains { $0.uuidString == key } }
         state = newState
     }
 
@@ -302,6 +399,14 @@ final class LauncherStore: ObservableObject {
             make("Perplexity", ai),
         ]
 
-        return LauncherState(groups: [essentials, everyday, tools, ai], apps: apps.compactMap { $0 }, theme: Theme())
+        // Starter dock apps (the dock itself is off until turned on in Groups & Dock).
+        let docked: Set<String> = ["Phone", "Messages", "Safari", "Music"]
+        let starterApps = apps.compactMap { $0 }.map { app -> LauncherApp in
+            var app = app
+            app.isDocked = docked.contains(app.name)
+            return app
+        }
+
+        return LauncherState(groups: [essentials, everyday, tools, ai], apps: starterApps, theme: Theme())
     }
 }
