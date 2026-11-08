@@ -241,13 +241,17 @@ struct ThemeView: View {
 
     private var layoutSection: some View {
         Section {
+            Picker("Sections", selection: $store.state.theme.sectionLayout) {
+                ForEach(SectionLayout.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
             Toggle("Show clock & date", isOn: $store.state.theme.showClock)
             Toggle("Group cards", isOn: $store.state.theme.showGroupCards)
             Toggle("Open straight into search", isOn: $store.state.theme.searchOnOpen)
         } header: {
             Text("Layout & behavior")
         } footer: {
-            Text("With “Open straight into search”, Go opens to the search screen every time, keyboard ready, so you can type a few letters and press Go to launch.")
+            Text("Swipe Rows shows one row per section (two for Recently Used); swipe left for more or tap View All. Full Grid shows every app. With “Open straight into search”, Go opens to the search screen every time, keyboard ready, so you can type a few letters and press Go to launch.")
         }
     }
 

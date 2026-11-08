@@ -6,6 +6,9 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var isSearching = false
+    @State private var viewAllKey: String?
+    @State private var viewAllQuery = ""
+    @FocusState private var viewAllFocused: Bool
     @State private var isEditing = false
     @State private var activeSheet: ActiveSheet?
     @State private var pendingDelete: LauncherApp?
@@ -53,6 +56,12 @@ struct HomeView: View {
             }
             .padding(.horizontal, showsDock ? 12 : 20)
             .padding(.bottom, showsDock ? 4 : 16)
+
+            if let key = viewAllKey {
+                viewAllOverlay(key)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .zIndex(1)
+            }
 
             if isSearching {
                 SearchOverlay(
@@ -186,31 +195,54 @@ struct HomeView: View {
 
     // MARK: - Sections
 
-    private func sectionHeader(title: String, symbol: String?, count: Int?, collapsed: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                if let symbol {
-                    Image(systemName: symbol)
-                        .font(.system(size: 12, weight: .bold))
-                        .opacity(0.75)
+    private func sectionHeader(
+        title: String,
+        symbol: String?,
+        count: Int?,
+        collapsed: Bool,
+        viewAll: (() -> Void)? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 10) {
+            Button(action: action) {
+                HStack(spacing: 6) {
+                    if let symbol {
+                        Image(systemName: symbol)
+                            .font(.system(size: 12, weight: .bold))
+                            .opacity(0.75)
+                    }
+                    Text(title)
+                        .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
+                    if let count {
+                        Text("\(count)")
+                            .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
+                            .opacity(0.6)
+                    }
+                    Spacer(minLength: 0)
                 }
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
-                if let count {
-                    Text("\(count)")
-                        .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
-                        .opacity(0.6)
-                }
-                Spacer()
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if let viewAll, !collapsed {
+                Button("View All", action: viewAll)
+                    .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
+                    .opacity(0.85)
+                    .buttonStyle(.plain)
+            }
+
+            Button(action: action) {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .bold))
                     .rotationEffect(.degrees(collapsed ? -90 : 0))
                     .opacity(0.6)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
             }
-            .foregroundStyle(theme.labelColor)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel(collapsed ? "Expand \(title)" : "Collapse \(title)")
         }
-        .buttonStyle(.plain)
+        .foregroundStyle(theme.labelColor)
     }
 
     private func sectionCard<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
@@ -224,12 +256,75 @@ struct HomeView: View {
             }
     }
 
-    private func smartApps(_ kind: SmartSection) -> [LauncherApp] {
+    // MARK: - Swipe rows / grid
+
+    private var usesRows: Bool { theme.sectionLayout == .rows }
+
+    /// Rows shown for a section before swiping (Recently Used gets two).
+    private func rowCount(for key: String) -> Int {
+        key == SmartSection.recent.rawValue ? 2 : 1
+    }
+
+    /// How many apps fit without swiping or "View All".
+    private func visibleCount(for key: String) -> Int {
+        theme.columns * rowCount(for: key)
+    }
+
+    /// Apps in a section: everything in Rows mode (you swipe), a fixed amount in Grid mode.
+    private func smartApps(_ kind: SmartSection, all: Bool = false) -> [LauncherApp] {
         switch kind {
-        case .recent: return store.recentApps(limit: theme.columns * 2) // two rows
+        case .recent: return store.recentApps(limit: all || usesRows ? 40 : theme.columns * 2)
         case .favorites: return store.allFavoriteApps
-        case .mostUsed: return store.mostUsedApps(limit: theme.columns)
+        case .mostUsed: return store.mostUsedApps(limit: all || usesRows ? 40 : theme.columns)
         case .attention: return store.attentionApps
+        }
+    }
+
+    private func appLayout<Cell: View>(
+        _ apps: [LauncherApp],
+        rows: Int,
+        cell: @escaping (LauncherApp) -> Cell
+    ) -> some View {
+        appLayout(apps, rows: rows, trailing: { EmptyView() }, cell: cell)
+    }
+
+    /// Lays apps out as a swipeable strip (Rows) or a wrapping grid (Grid).
+    /// `trailing` adds an extra item at the end (the "Add" tile in Edit Layout).
+    @ViewBuilder
+    private func appLayout<Cell: View, Trailing: View>(
+        _ apps: [LauncherApp],
+        rows: Int,
+        @ViewBuilder trailing: () -> Trailing,
+        cell: @escaping (LauncherApp) -> Cell
+    ) -> some View {
+        if usesRows {
+            // Column-by-column chunks so 2-row sections fill top then bottom.
+            let starts = Array(stride(from: 0, to: apps.count, by: max(rows, 1)))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: theme.iconSpacing) {
+                    ForEach(starts, id: \.self) { start in
+                        VStack(spacing: theme.rowSpacing) {
+                            ForEach(apps[start..<min(start + rows, apps.count)]) { app in
+                                cell(app)
+                            }
+                        }
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        // A sliver of the next column peeks in so it's clear you can swipe.
+                        .containerRelativeFrame(.horizontal, count: theme.columns * 10 + 3, span: 10, spacing: theme.iconSpacing)
+                    }
+                    trailing()
+                        .containerRelativeFrame(.horizontal, count: theme.columns * 10 + 3, span: 10, spacing: theme.iconSpacing)
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+        } else {
+            LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
+                ForEach(apps) { app in
+                    cell(app)
+                }
+                trailing()
+            }
         }
     }
 
@@ -237,8 +332,15 @@ struct HomeView: View {
         let apps = smartApps(kind)
         let collapsed = store.isSectionCollapsed(kind.rawValue)
         let showCount = (collapsed || kind == .attention || kind == .favorites) && !apps.isEmpty
+        let overflow = apps.count > visibleCount(for: kind.rawValue)
         return sectionCard {
-            sectionHeader(title: kind.title, symbol: kind.symbol, count: showCount ? apps.count : nil, collapsed: collapsed) {
+            sectionHeader(
+                title: kind.title,
+                symbol: kind.symbol,
+                count: showCount ? apps.count : nil,
+                collapsed: collapsed,
+                viewAll: overflow && usesRows ? { openViewAll(kind.rawValue) } : nil
+            ) {
                 store.toggleSection(kind.rawValue)
             }
             if !collapsed {
@@ -248,16 +350,14 @@ struct HomeView: View {
                         .foregroundStyle(theme.labelColor.opacity(0.6))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
-                        ForEach(apps) { app in
-                            Button {
-                                if isEditing { activeSheet = .edit(app) } else { launch(app) }
-                            } label: {
-                                AppIconView(app: app, theme: theme)
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu { contextMenu(for: app) }
+                    appLayout(apps, rows: rowCount(for: kind.rawValue)) { app in
+                        Button {
+                            if isEditing { activeSheet = .edit(app) } else { launch(app) }
+                        } label: {
+                            AppIconView(app: app, theme: theme)
                         }
+                        .buttonStyle(.plain)
+                        .contextMenu { contextMenu(for: app) }
                     }
                 }
             }
@@ -266,8 +366,16 @@ struct HomeView: View {
 
     private func groupSection(_ group: AppGroup) -> some View {
         let apps = store.apps(in: group.id)
+        let key = group.id.uuidString
+        let overflow = apps.count > visibleCount(for: key)
         return sectionCard {
-            sectionHeader(title: group.name, symbol: nil, count: group.isCollapsed ? apps.count : nil, collapsed: group.isCollapsed) {
+            sectionHeader(
+                title: group.name,
+                symbol: nil,
+                count: group.isCollapsed || (usesRows && overflow) ? apps.count : nil,
+                collapsed: group.isCollapsed,
+                viewAll: overflow && usesRows ? { openViewAll(key) } : nil
+            ) {
                 store.toggleCollapsed(group.id)
             }
             .dropDestination(for: String.self) { items, _ in
@@ -275,13 +383,12 @@ struct HomeView: View {
             }
 
             if !group.isCollapsed {
-                LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
-                    ForEach(apps) { app in
-                        iconCell(app)
-                    }
+                appLayout(apps, rows: 1, trailing: {
                     if isEditing {
                         addTile(groupID: group.id)
                     }
+                }) { app in
+                    iconCell(app)
                 }
                 if apps.isEmpty && !isEditing {
                     Text("Empty. Drag apps here or tap ••• › Edit Layout.")
@@ -291,6 +398,105 @@ struct HomeView: View {
                         .dropDestination(for: String.self) { items, _ in
                             dropApp(items) { store.move(appID: $0, toGroup: group.id) }
                         }
+                }
+            }
+        }
+    }
+
+    // MARK: - View All
+
+    private func openViewAll(_ key: String) {
+        viewAllQuery = ""
+        withAnimation(.snappy) { viewAllKey = key }
+    }
+
+    private func closeViewAll() {
+        viewAllFocused = false
+        withAnimation(.snappy) { viewAllKey = nil }
+    }
+
+    private func viewAllContent(_ key: String) -> (title: String, symbol: String?, apps: [LauncherApp])? {
+        if let kind = SmartSection(rawValue: key) {
+            return (kind.title, kind.symbol, smartApps(kind, all: true))
+        }
+        if let group = store.state.groups.first(where: { $0.id.uuidString == key }) {
+            return (group.name, nil, store.apps(in: group.id))
+        }
+        return nil
+    }
+
+    /// Full-screen list of every app in one section. Over four rows, a search bar appears at the bottom.
+    @ViewBuilder
+    private func viewAllOverlay(_ key: String) -> some View {
+        if let content = viewAllContent(key) {
+            let needsSearch = content.apps.count > theme.columns * 4
+            let q = viewAllQuery.trimmingCharacters(in: .whitespaces).lowercased()
+            let shown = q.isEmpty ? content.apps : content.apps.filter {
+                $0.name.lowercased().contains(q) || $0.keywords.lowercased().contains(q)
+            }
+            VStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    if let symbol = content.symbol {
+                        Image(systemName: symbol).font(.system(size: 16, weight: .bold)).opacity(0.75)
+                    }
+                    Text(content.title)
+                        .font(.system(size: 28, weight: .bold, design: theme.fontStyle.design))
+                    Text("\(content.apps.count)")
+                        .font(.system(size: 17, weight: .semibold, design: theme.fontStyle.design))
+                        .opacity(0.6)
+                    Spacer()
+                    Button("Done", action: closeViewAll)
+                        .font(.system(size: 17, weight: .semibold, design: theme.fontStyle.design))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
+                        ForEach(shown) { app in
+                            Button { launch(app) } label: { AppIconView(app: app, theme: theme) }
+                                .buttonStyle(.plain)
+                                .contextMenu { contextMenu(for: app) }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                    if shown.isEmpty {
+                        Text("No apps match “\(viewAllQuery)”").opacity(0.7).padding(.top, 20)
+                    }
+                }
+                .scrollDismissesKeyboard(.interactively)
+            }
+            .foregroundStyle(theme.labelColor)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if needsSearch {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                        TextField("Search \(content.title)", text: $viewAllQuery)
+                            .focused($viewAllFocused)
+                            .submitLabel(.go)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .onSubmit { if let first = shown.first { launch(first) } }
+                        if !viewAllQuery.isEmpty {
+                            Button { viewAllQuery = "" } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                            }
+                            .accessibilityLabel("Clear search")
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 11)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                }
+            }
+            .background {
+                ZStack {
+                    WallpaperView(theme: theme)
+                    Rectangle().fill(.ultraThinMaterial).ignoresSafeArea()
                 }
             }
         }
@@ -454,7 +660,10 @@ struct HomeView: View {
         openURL(url) { accepted in
             if accepted {
                 store.recordLaunch(app.id)
-                withAnimation(.snappy) { isSearching = false }
+                withAnimation(.snappy) {
+                    isSearching = false
+                    viewAllKey = nil
+                }
             } else {
                 launchError = "iOS couldn't open \(app.name). The app may not be installed, or its link changed. Edit the icon and try the Shortcut option instead."
             }

@@ -187,6 +187,24 @@ body {
 .web-btn svg { width: 16px; height: 16px; }
 .hint { text-align: center; font-size: 12px; opacity: .6; margin-top: 10px; }
 
+.ghead-row { display: flex; align-items: center; gap: 10px; }
+.ghead-row .ghead:first-child { flex: 1; min-width: 0; }
+.chev-btn { width: 24px; flex: none; justify-content: center; }
+.chev-btn .chev { margin-left: 0; }
+.view-all { border: 0; background: none; color: var(--label); font: 700 13px var(--app-font); opacity: .85; cursor: pointer; padding: 2px 0; text-shadow: var(--label-shadow); }
+.strip { display: grid; grid-auto-flow: column; grid-template-rows: repeat(var(--rows), auto); grid-auto-columns: calc((100% - var(--gap) * var(--cols)) / (var(--cols) + .3)); column-gap: var(--gap); row-gap: var(--row-gap); margin-top: 12px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; align-items: start; }
+.strip::-webkit-scrollbar { display: none; }
+.strip > * { scroll-snap-align: start; }
+.fill .strip .tile { width: 100%; }
+.view-all-screen { position: absolute; inset: 0; z-index: 20; padding-top: 58px; display: flex; flex-direction: column; background: linear-gradient(var(--bg-top), var(--bg-bottom)); animation: rise .25s cubic-bezier(.2, .9, .3, 1); color: var(--label); font-family: var(--app-font); }
+.view-all-screen::before { content: ""; position: absolute; inset: 0; background: var(--search-tint); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); z-index: -1; }
+.va-head { display: flex; align-items: center; gap: 8px; padding: 10px 16px 14px; text-shadow: var(--label-shadow); }
+.va-head h2 { margin: 0; font: 800 28px var(--app-font); }
+.va-head .n { font-weight: 700; font-size: 17px; opacity: .6; }
+.va-head svg { width: 18px; height: 18px; opacity: .75; }
+.va-head .done { margin-left: auto; border: 0; background: none; color: var(--label); font: 700 17px var(--app-font); cursor: pointer; }
+.va-body { flex: 1; overflow-y: auto; padding: 0 16px 24px; scrollbar-width: none; }
+.va-body .grid { margin-top: 0; }
 .ghead .sicon { width: 13px; height: 13px; opacity: .75; stroke-width: 2.6; }
 .editing .cell.still .tile { animation: none; }
 .homebar { position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--label); opacity: .7; z-index: 6; }
@@ -293,6 +311,7 @@ body {
       <li><b>Open</b><span>Tap an icon, or type in search and press Enter.</span></li>
       <li><b>Customize</b><span>Long-press or right-click an icon to edit it, add it to Favorites, flag it as Needs Attention, or move it.</span></li>
       <li><b>Menu</b><span>The ••• button has Add App, Edit Layout, Groups and Design.</span></li>
+      <li><b>Swipe</b><span>Swipe a section left for more apps, or tap View All to see them all.</span></li>
       <li><b>Rearrange</b><span>In Edit Layout, drag an icon onto another icon or onto a group title.</span></li>
     </ul>
     <button class="reset" id="resetAll" type="button">Reset preview</button>
@@ -315,6 +334,7 @@ body {
         <button class="fab" id="fab" type="button" data-act="search-open" aria-label="Search apps"><i data-lucide="search"></i></button>
         <div id="dock"></div>
       </div>
+      <div class="view-all-screen" id="viewAll" hidden></div>
       <div class="search-view" id="searchView" hidden>
         <div class="sv-body" id="svBody"></div>
         <div class="searchrow">
@@ -374,7 +394,7 @@ body {
     serif: ['Serif', '"Newsreader", "New York", Georgia, serif'],
     mono: ['Mono', '"JetBrains Mono", ui-monospace, Menlo, monospace'],
   };
-  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true, iconSpacing: 10, fillCells: false, labelsInside: false, showWidgets: false, leftWidget: "dateTime", rightWidget: "weather" };
+  const DEFAULT_THEME = { backgroundTopHex: "#312E81", backgroundBottomHex: "#0F172A", isDark: true, iconSize: 62, cornerFactor: .24, columns: 4, showLabels: true, labelColorHex: "#FFFFFF", fontStyle: "rounded", uniformIconColors: false, uniformIconHex: "#FFFFFF33", uniformGlyphHex: "#FFFFFF", showGroupCards: true, showClock: true, iconSpacing: 10, fillCells: false, labelsInside: false, showWidgets: false, leftWidget: "dateTime", rightWidget: "weather", sectionLayout: "rows" };
   const TILES = { iconSpacing: 0, cornerFactor: 0, fillCells: true, labelsInside: true, showLabels: true, showGroupCards: false };
   const CLASSIC = { iconSpacing: 10, cornerFactor: .24, fillCells: false, labelsInside: false, showGroupCards: true };
   const matches = (t, p) => Object.keys(p).every(k => t[k] === p[k]);
@@ -400,13 +420,13 @@ body {
     // Example history so the automatic sections have something to show.
     const now = Date.now(), min = 60000;
     const history = { Messages: [42, 3], Safari: [35, 25], Spotify: [28, 9], Claude: [21, 1], Mail: [18, 140], Maps: [9, 300], ChatGPT: [12, 55], Photos: [7, 600], Weather: [15, 900] };
-    apps.forEach(a => { const h = history[a.name]; if (h) { a.launchCount = h[0]; a.lastLaunched = now - h[1] * min; } });
+    apps.forEach((a, i) => { const h = history[a.name] || [1 + (i % 4), 1200 + i * 90]; a.launchCount = h[0]; a.lastLaunched = now - h[1] * min; });
     apps.forEach(a => { if (a.name === "Reminders" || a.name === "Calendar") a.needsAttention = true; });
     apps.forEach(a => { if (["Phone", "Messages", "Safari", "Music"].includes(a.name)) a.isDocked = true; });
     return { groups: g, apps, theme: { ...DEFAULT_THEME, showWidgets: true }, favoriteAppIDs: ["Messages", "Safari", "Music", "Claude"].map(n => apps.find(a => a.name === n).id), collapsedSections: [], sectionOrder: [], hiddenSections: [], showDock: false, recentSearches: ["spotify", "claude", "maps", "weather"] };
   }
 
-  const KEY = "go-launcher-preview-v5";
+  const KEY = "go-launcher-preview-v6";
   let state;
   try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
   if (!state || !state.apps || !state.groups || !state.theme) state = seed();
@@ -435,6 +455,15 @@ body {
     gk.forEach(k => { if (!keys.includes(k)) { const i = keys.indexOf("attention"); i >= 0 ? keys.splice(i, 0, k) : keys.push(k); } });
     SMART_KEYS.forEach(k => { if (!keys.includes(k)) keys.push(k); });
     return keys;
+  }
+  // Apps in a section. Rows mode (and View All) get the long list; Grid mode a fixed amount.
+  function sectionApps(key, all = false) {
+    const long = all || state.theme.sectionLayout !== "grid", c = state.theme.columns;
+    if (key === "recent") return recentApps(long ? 40 : c * 2);
+    if (key === "mostUsed") return mostUsedApps(long ? 40 : c);
+    if (key === "favorites") return (state.favoriteAppIDs || []).map(byId).filter(Boolean);
+    if (key === "attention") return attentionApps();
+    return appsIn(key);
   }
   function addRecentSearch(q) {
     q = q.trim(); if (!q) return;
@@ -508,26 +537,34 @@ body {
     const t = state.theme;
     content.className = (t.showGroupCards ? "cards " : "") + (editing ? "editing" : "");
     {
+      const rowsMode = t.sectionLayout !== "grid";
+      const rowsFor = key => key === "recent" ? 2 : 1;
+      // Rows mode: a swipeable strip; Grid mode: every app in a wrapping grid.
+      const layout = (key, cells) => rowsMode
+        ? `<div class="strip" style="--rows:${rowsFor(key)}">${cells}</div>`
+        : `<div class="grid">${cells}</div>`;
+      const head = (key, title, icon, count, collapsed, act, dataAttr, overflow) => `<div class="ghead-row">
+          <button class="ghead ${collapsed ? "collapsed" : ""}" type="button" data-act="${act}" ${dataAttr}>${icon ? `<i class="sicon" data-lucide="${icon}"></i>` : ""}${title}${count != null ? `<span class="count">${count}</span>` : ""}</button>
+          ${overflow && rowsMode && !collapsed ? `<button class="view-all" type="button" data-act="view-all" data-key="${key}">View All</button>` : ""}
+          <button class="ghead chev-btn ${collapsed ? "collapsed" : ""}" type="button" data-act="${act}" ${dataAttr} aria-label="${collapsed ? "Expand" : "Collapse"} ${esc(title)}"><i class="chev" data-lucide="chevron-down"></i></button></div>`;
       const smart = (key, apps) => {
         const [title, icon, empty] = SMART[key], collapsed = (state.collapsedSections || []).includes(key);
-        return `<section class="group smart">
-          <button class="ghead ${collapsed ? "collapsed" : ""}" type="button" data-act="smart-collapse" data-key="${key}">
-            <i class="sicon" data-lucide="${icon}"></i>${title}${(collapsed || key === "attention" || key === "favorites") && apps.length ? `<span class="count">${apps.length}</span>` : ""}<i class="chev" data-lucide="chevron-down"></i></button>
-          ${collapsed ? "" : apps.length ? `<div class="grid">${apps.map(a => cellHTML(a, false, true)).join("")}</div>` : `<div class="empty" style="text-align:left">${empty}</div>`}
+        const overflow = apps.length > t.columns * rowsFor(key);
+        const count = (collapsed || key === "attention" || key === "favorites") && apps.length ? apps.length : null;
+        return `<section class="group smart">${head(key, title, icon, count, collapsed, "smart-collapse", `data-key="${key}"`, overflow)}
+          ${collapsed ? "" : apps.length ? layout(key, apps.map(a => cellHTML(a, false, true)).join("")) : `<div class="empty" style="text-align:left">${empty}</div>`}
         </section>`;
       };
       const groupHTML = g => {
-        const apps = appsIn(g.id);
-        return `<section class="group">
-          <button class="ghead ${g.isCollapsed ? "collapsed" : ""}" type="button" data-act="collapse" data-gid="${g.id}">
-            ${esc(g.name)}${g.isCollapsed ? `<span class="count">${apps.length}</span>` : ""}<i class="chev" data-lucide="chevron-down"></i></button>
-          ${g.isCollapsed ? "" : `<div class="grid">${apps.map(a => cellHTML(a, editing)).join("")}${editing ? `<button class="cell addtile" type="button" data-act="add" data-gid="${g.id}"><span class="tile"><i data-lucide="plus"></i></span>${t.showLabels ? '<span class="label">Add</span>' : ""}</button>` : ""}</div>
-          ${!apps.length && !editing ? `<div class="empty">Empty. Drag apps here, or use ••• › Edit Layout.</div>` : ""}`}
+        const apps = appsIn(g.id), overflow = apps.length > t.columns;
+        const addTile = editing ? `<button class="cell addtile" type="button" data-act="add" data-gid="${g.id}"><span class="tile"><i data-lucide="plus"></i></span>${t.showLabels ? '<span class="label">Add</span>' : ""}</button>` : "";
+        return `<section class="group">${head(g.id, esc(g.name), null, g.isCollapsed || (rowsMode && overflow) ? apps.length : null, g.isCollapsed, "collapse", `data-gid="${g.id}"`, overflow)}
+          ${g.isCollapsed ? "" : layout(g.id, apps.map(a => cellHTML(a, editing)).join("") + addTile)
+          + (!apps.length && !editing ? `<div class="empty">Empty. Drag apps here, or use ••• › Edit Layout.</div>` : "")}
         </section>`;
       };
-      const smartApps = { recent: () => recentApps(t.columns * 2), favorites: () => (state.favoriteAppIDs || []).map(byId).filter(Boolean), mostUsed: () => mostUsedApps(t.columns), attention: attentionApps };
       content.innerHTML = orderedKeys().filter(k => !(state.hiddenSections || []).includes(k)).map(k => {
-        if (smartApps[k]) return smart(k, smartApps[k]());
+        if (SMART[k]) return smart(k, sectionApps(k));
         const g = state.groups.find(x => x.id === k); return g ? groupHTML(g) : "";
       }).join("");
     }
@@ -560,6 +597,36 @@ body {
     icons();
     body.scrollTop = body.scrollHeight; // keep the bottom (nearest the search bar) in view
   }
+  // ---------- View All ----------
+  let viewAllKey = null, vaQuery = "";
+  function viewAllInfo(key) {
+    if (SMART[key]) return { title: SMART[key][0], icon: SMART[key][1], apps: sectionApps(key, true) };
+    const g = state.groups.find(x => x.id === key); return g ? { title: g.name, icon: null, apps: appsIn(g.id) } : null;
+  }
+  function openViewAll(key) { viewAllKey = key; vaQuery = ""; renderViewAll(); $("viewAll").hidden = false; }
+  function closeViewAll() { viewAllKey = null; $("viewAll").hidden = true; $("viewAll").innerHTML = ""; }
+  function vaGridHTML(info) {
+    const q = vaQuery.trim().toLowerCase();
+    const shown = q ? info.apps.filter(a => a.name.toLowerCase().includes(q) || (a.keywords || "").toLowerCase().includes(q)) : info.apps;
+    return shown.length ? `<div class="grid">${shown.map(a => cellHTML(a, false, true)).join("")}</div>` : `<div class="hint" style="font-size:14px">No apps match “${esc(vaQuery)}”</div>`;
+  }
+  // Over four rows of apps, a search bar appears at the bottom.
+  function renderViewAll() {
+    const info = viewAllInfo(viewAllKey); if (!info) return closeViewAll();
+    const needsSearch = info.apps.length > state.theme.columns * 4;
+    $("viewAll").innerHTML = `<div class="va-head">${info.icon ? `<i data-lucide="${info.icon}"></i>` : ""}<h2>${esc(info.title)}</h2><span class="n">${info.apps.length}</span><button class="done" type="button" data-act="va-done">Done</button></div>
+      <div class="va-body ${state.theme.showGroupCards ? "" : ""}" id="vaBody">${vaGridHTML(info)}</div>
+      ${needsSearch ? `<div class="searchrow"><label class="searchbar"><i data-lucide="search"></i><input id="vaQ" type="text" placeholder="Search ${esc(info.title)}" autocomplete="off" enterkeyhint="go" aria-label="Search ${esc(info.title)}" value="${esc(vaQuery)}"></label></div>` : ""}`;
+    icons();
+  }
+  screen.addEventListener("input", e => {
+    if (e.target.id !== "vaQ") return;
+    vaQuery = e.target.value; $("vaBody").innerHTML = vaGridHTML(viewAllInfo(viewAllKey)); icons();
+  });
+  screen.addEventListener("keydown", e => {
+    if (e.target.id === "vaQ" && e.key === "Enter") { const f = $("vaBody").querySelector(".cell[data-id]"); if (f) launch(byId(f.dataset.id)); }
+  });
+
   // ---------- Widgets ----------
   const WIDGETS = { dateTime: "Date & Time", weather: "Weather", favorites: "Favorite Apps" };
   function favoriteApps() {
@@ -603,7 +670,7 @@ body {
   function launch(a) {
     const url = launchURL(a.launch);
     if (!url) { toast(`${esc(a.name)} has no link yet. Long-press it and choose Edit Icon.`); return; }
-    a.launchCount++; a.lastLaunched = Date.now(); a.needsAttention = false; closeSearch(); render();
+    a.launchCount++; a.lastLaunched = Date.now(); a.needsAttention = false; closeSearch(); closeViewAll(); render();
     toast(`On iPhone this opens <b>${esc(a.name)}</b><br><code>${esc(url)}</code>`);
   }
 
@@ -805,6 +872,7 @@ body {
           <div class="row"><span>Text color</span><input type="color" data-theme-color="labelColorHex" value="${t.labelColorHex.slice(0, 7)}"></div>
           <div class="row"><span>Font</span><select id="fontSel" aria-label="Font">${Object.entries(FONTS).map(([k, v]) => `<option value="${k}" ${k === t.fontStyle ? "selected" : ""}>${v[0]}</option>`).join("")}</select></div></div>
         <div class="sec-title">Layout & behavior</div><div class="box">
+          <div class="row col"><span>Sections</span><div class="seg"><button type="button" data-act="layout" data-v="rows" class="${t.sectionLayout !== "grid" ? "on" : ""}">Swipe Rows</button><button type="button" data-act="layout" data-v="grid" class="${t.sectionLayout === "grid" ? "on" : ""}">Full Grid</button></div></div>
           <div class="row"><span>Show clock & date</span><label class="switch"><input type="checkbox" data-theme-bool="showClock" ${t.showClock ? "checked" : ""}><span></span></label></div>
           <div class="row"><span>Group cards</span><label class="switch"><input type="checkbox" data-theme-bool="showGroupCards" ${t.showGroupCards ? "checked" : ""}><span></span></label></div></div>
         <div class="box" style="margin-top:26px"><div class="row"><button class="rowbtn danger" data-act="reset" type="button">Reset Everything to Default</button></div></div>
@@ -889,6 +957,9 @@ body {
       case "web": addRecentSearch(query); save(); toast(`On iPhone this searches the web for “${esc(query.trim())}” in Safari`); break;
       case "edit": openEditor(byId(id), false); break;
       case "attention": { const a = byId(id); a.needsAttention = !a.needsAttention; closeOverlay(); render(); toast(a.needsAttention ? `Flagged ${esc(a.name)}. Opening it clears the flag.` : `Cleared ${esc(a.name)}`); break; }
+      case "view-all": openViewAll(el.dataset.key); break;
+      case "va-done": closeViewAll(); break;
+      case "layout": state.theme.sectionLayout = v; render(); renderDesign(); break;
       case "smart-collapse": { const k = el.dataset.key, c = state.collapsedSections || (state.collapsedSections = []); const i = c.indexOf(k); if (i >= 0) c.splice(i, 1); else c.push(k); render(); break; }
       case "move": moveToGroup(id, gid); closeOverlay(); render(); break;
       case "remove": openActions(byId(id) || draft, true); break;

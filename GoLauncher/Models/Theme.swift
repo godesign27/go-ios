@@ -47,6 +47,17 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// How each section shows its apps.
+enum SectionLayout: String, Codable, CaseIterable, Identifiable {
+    /// One row (two for Recently Used) you swipe left for more, plus View All.
+    case rows
+    /// Every app visible in a wrapping grid.
+    case grid
+
+    var id: String { rawValue }
+    var title: String { self == .rows ? "Swipe Rows" : "Full Grid" }
+}
+
 struct Theme: Codable, Hashable {
     // Background
     var backgroundTopHex = "#312E81"
@@ -80,6 +91,7 @@ struct Theme: Codable, Hashable {
     var rightWidget: WidgetKind = .weather
 
     // Layout & behavior
+    var sectionLayout: SectionLayout = .rows
     var showGroupCards = true
     var showClock = true
     var searchOnOpen = false

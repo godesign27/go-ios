@@ -50,6 +50,8 @@ You need a **Mac with Xcode 15 or later** (free on the Mac App Store) and an iPh
 | Flag an app to come back to | Long-press › **Needs Attention**. Opening the app clears the flag. |
 | Arrange sections, rename/add/delete groups, hide automatic sections | **•••** › **Groups & Dock** |
 | Bring back the bottom dock | **•••** › **Groups & Dock** › **Show Dock**, then long-press apps › **Add to Dock** |
+| See more apps in a section | Swipe the row left, or tap **View All** (a search bar appears at the bottom when there are more than four rows) |
+| Show every app at once instead of swipe rows | **•••** › **Design** › Layout & behavior › Sections › **Full Grid** |
 | Change the look | **•••** › **Design** |
 | Two widgets at the top (Date & Time, Weather, Favorite Apps) | **•••** › **Design** › **Widgets** › **Show widgets**, then pick Left and Right |
 | Edge-to-edge square tiles (no spacing, bigger tap areas) | **•••** › **Design** › Style › **Tiles**, or set the **Spacing** slider yourself |
