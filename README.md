@@ -36,6 +36,18 @@ You need a **Mac with Xcode** (free on the Mac App Store) and an iPhone on **iOS
 
 ---
 
+### Upload to TestFlight (install on other iPhones)
+
+With the app created in App Store Connect and your account signed in to Xcode, run:
+
+```bash
+./scripts/testflight.sh
+```
+
+It pulls the latest code, archives with a fresh build number, and uploads. The build shows up in App Store Connect › TestFlight after 5–30 minutes of processing.
+
+---
+
 ## Using Go
 
 | To… | Do this |

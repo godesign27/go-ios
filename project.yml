@@ -13,6 +13,8 @@ targets:
   GoLauncher:
     type: application
     platform: iOS
+    # A shared scheme, so command-line builds (scripts/testflight.sh) can find it.
+    scheme: {}
     sources:
       - path: GoLauncher
     info:
