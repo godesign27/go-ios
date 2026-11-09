@@ -968,14 +968,20 @@ struct WallpaperView: View {
             // A soft fade in the wallpaper's own deep color behind the greeting, only as strong
             // as WCAG contrast needs. The rest of the wallpaper keeps its full color.
             let legibility = Self.legibility(theme: theme, store: store)
-            LinearGradient(
-                stops: [
-                    .init(color: legibility.tint.opacity(legibility.headerScrim), location: 0),
-                    .init(color: legibility.tint.opacity(legibility.headerScrim * 0.8), location: 0.18),
-                    .init(color: legibility.tint.opacity(0), location: 0.38),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
+            if theme.showGroupCards {
+                LinearGradient(
+                    stops: [
+                        .init(color: legibility.tint.opacity(legibility.headerScrim), location: 0),
+                        .init(color: legibility.tint.opacity(legibility.headerScrim * 0.8), location: 0.18),
+                        .init(color: legibility.tint.opacity(0), location: 0.38),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+            } else {
+                // No containers: names and titles sit right on the wallpaper, so an even wash
+                // of its own deep color keeps them readable everywhere.
+                legibility.tint.opacity(legibility.openScrim)
+            }
         }
         .ignoresSafeArea()
     }
@@ -1000,6 +1006,7 @@ struct WallpaperView: View {
         if theme.wallpaperDim > 0, key != nil {
             result.cardTint = max(0, result.cardTint - theme.wallpaperDim)
             result.headerScrim = max(0, result.headerScrim - theme.wallpaperDim)
+            result.openScrim = max(0, result.openScrim - theme.wallpaperDim)
         }
         return result
     }

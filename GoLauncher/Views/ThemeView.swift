@@ -62,6 +62,14 @@ struct ThemeView: View {
                 }
             }
             .padding(.vertical, 6)
+            Toggle(isOn: $store.state.theme.showGroupCards.animation(.snappy)) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Containers")
+                    Text("Off: apps sit right on the background")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
         } header: {
             Text("Style")
         } footer: {
@@ -280,7 +288,6 @@ struct ThemeView: View {
             }
             Toggle("Show clock & date", isOn: $store.state.theme.showClock)
                 .disabled(store.state.theme.showsDateWidget)
-            Toggle("Group cards", isOn: $store.state.theme.showGroupCards)
             Toggle("Open straight into search", isOn: $store.state.theme.searchOnOpen)
         } header: {
             Text("Layout & behavior")

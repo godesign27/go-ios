@@ -168,9 +168,9 @@ struct Theme: Codable, Hashable {
         iconSpacing == 0 && cornerFactor == 0 && fillCells && labelsInside && !showGroupCards
     }
 
-    /// Standard spacing and rounded icons with names underneath, on cards.
+    /// Standard spacing and rounded icons with names underneath. Containers can be on or off.
     private var hasCardLayout: Bool {
-        iconSpacing == 6 && cornerFactor == 0.24 && !fillCells && !labelsInside && showGroupCards
+        iconSpacing == 6 && cornerFactor == 0.24 && !fillCells && !labelsInside
     }
 
     var isClassic: Bool {

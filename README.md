@@ -61,6 +61,7 @@ It pulls the latest code, archives with a fresh build number, and uploads. The b
 | Edit everything at once | **Customize** (sliders button) › **Edit Layout**. Icons wiggle: tap one to edit, **–** to remove, **+** to add |
 | Add an app to Favorites | Long-press › **Add to Favorites**. The Favorites section shows them all; the Favorite Apps widget shows the first four. |
 | Flag an app to come back to | Long-press › **Needs Attention**. Opening the app clears the flag. |
+| Apps right on the background (no containers) | **Customize** › **Design** › Style › turn off **Containers** |
 | Arrange sections, rename/add/delete groups, hide automatic sections | **Customize** (sliders button) › **Groups & Dock** |
 | Bring back the bottom dock | **Customize** (sliders button) › **Groups & Dock** › **Show Dock**, then long-press apps › **Add to Dock** |
 | See more apps in a section | Swipe the row left, or tap **View All** (a search bar appears at the bottom when there are more than four rows) |

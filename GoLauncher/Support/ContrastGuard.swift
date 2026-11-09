@@ -15,6 +15,9 @@ struct Legibility: Equatable {
     var cardTint: Double = 0
     /// Opacity of `tint` at the top edge of the screen, fading out by a third of the way down.
     var headerScrim: Double = 0
+    /// Opacity of `tint` over the whole wallpaper when containers are off and text sits
+    /// right on the background.
+    var openScrim: Double = 0
 
     static let none = Legibility()
 }
@@ -67,7 +70,8 @@ enum ContrastGuard {
             tint: Color(.sRGB, red: deep.0, green: deep.1, blue: deep.2),
             tint2: Color(.sRGB, red: deep2.0, green: deep2.1, blue: deep2.2),
             cardTint: card,
-            headerScrim: tintNeeded(over: stats.brightestTop, tint: deep, target: headerTarget)
+            headerScrim: tintNeeded(over: stats.brightestTop, tint: deep, target: headerTarget),
+            openScrim: tintNeeded(over: stats.brightest, tint: deep, target: headerTarget)
         )
         cache[key] = result
         return result
