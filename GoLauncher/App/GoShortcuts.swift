@@ -12,5 +12,14 @@ struct GoShortcuts: AppShortcutsProvider {
             shortTitle: "Search",
             systemImageName: "magnifyingglass"
         )
+        AppShortcut(
+            intent: OpenAppWithGoIntent(),
+            phrases: [
+                "Open \(\.$app) with \(.applicationName)",
+                "Open an app with \(.applicationName)",
+            ],
+            shortTitle: "Open App",
+            systemImageName: "arrow.up.forward.app"
+        )
     }
 }

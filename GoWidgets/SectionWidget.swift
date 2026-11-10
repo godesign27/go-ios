@@ -106,7 +106,8 @@ struct GoSectionProvider: AppIntentTimelineProvider {
         let namesUnder = theme.showLabels && !theme.labelsInside
         switch family {
         case .systemSmall: return (2, 2)
-        case .systemMedium: return (4, namesUnder ? 1 : 2)
+        // Two rows in medium too: a compact header and smaller names make room for them.
+        case .systemMedium: return (4, 2)
         case .systemLarge: return (4, 4)
         default: return (4, 1)
         }
@@ -212,8 +213,12 @@ struct GoSectionWidgetView: View {
     }
 
     var body: some View {
-        let grid = GoSectionProvider.grid(family: family, theme: theme)
-        VStack(alignment: .leading, spacing: 8) {
+        let fullGrid = GoSectionProvider.grid(family: family, theme: theme)
+        // Medium: a second row only when there are more apps than fit in one, so a short
+        // section gets one row of bigger icons instead of an empty band.
+        let grid = (family == .systemMedium && entry.content.apps.count <= fullGrid.columns)
+            ? (columns: fullGrid.columns, rows: 1) : fullGrid
+        VStack(alignment: .leading, spacing: Self.headerGap(family)) {
             if !isTiles && family != .systemSmall {
                 header
             }
@@ -221,9 +226,11 @@ struct GoSectionWidgetView: View {
                 emptyState
             } else {
                 tiles(in: tileArea, grid: grid)
+                    // One row in a medium widget: center it so leftover space splits evenly.
+                    .frame(maxHeight: .infinity, alignment: grid.rows == 1 && family == .systemMedium ? .center : .top)
             }
         }
-        .padding(isTiles ? 0 : 14)
+        .padding(isTiles ? 0 : Self.padding(family))
         .containerBackground(for: .widget) {
             WidgetBackground(theme: theme)
         }
@@ -231,10 +238,15 @@ struct GoSectionWidgetView: View {
         .widgetURL(URL(string: "golauncher://section?key=\(entry.content.key)"))
     }
 
+    // Medium widgets fit two rows of apps with names, so they use tighter spacing.
+    static func padding(_ family: WidgetFamily) -> CGFloat { family == .systemMedium ? 12 : 14 }
+    static func headerGap(_ family: WidgetFamily) -> CGFloat { family == .systemMedium ? 4 : 8 }
+    static func nameHeight(_ family: WidgetFamily) -> CGFloat { family == .systemMedium ? 13 : 16 }
+
     /// Room left for tiles: the widget minus its padding and the header line.
     private var tileArea: CGSize {
-        let padding: CGFloat = isTiles ? 0 : 14
-        let headerHeight: CGFloat = (!isTiles && family != .systemSmall) ? 16 + 8 : 0
+        let padding: CGFloat = isTiles ? 0 : Self.padding(family)
+        let headerHeight: CGFloat = (!isTiles && family != .systemSmall) ? 16 + Self.headerGap(family) : 0
         return CGSize(width: max(0, entry.displaySize.width - padding * 2),
                       height: max(0, entry.displaySize.height - padding * 2 - headerHeight))
     }
@@ -276,7 +288,7 @@ struct GoSectionWidgetView: View {
             width: (size.width - gap * CGFloat(grid.columns - 1)) / CGFloat(grid.columns),
             height: (size.height - gap * CGFloat(grid.rows - 1)) / CGFloat(grid.rows)
         )
-        let side = max(0, min(cell.width, cell.height - (namesUnder ? 16 : 0)))
+        let side = max(0, min(cell.width, cell.height - (namesUnder ? Self.nameHeight(family) : 0)))
         let apps = Array(entry.content.apps.prefix(grid.columns * grid.rows))
         let namesInside = theme.showLabels && (theme.labelsInside || isTiles)
 
@@ -298,7 +310,7 @@ struct GoSectionWidgetView: View {
 
     @ViewBuilder
     private func tile(_ app: LauncherApp, cell: CGSize, side: CGFloat, namesUnder: Bool, namesInside: Bool) -> some View {
-        let label = VStack(spacing: 3) {
+        let label = VStack(spacing: family == .systemMedium ? 1 : 3) {
             WidgetTileView(
                 app: app,
                 theme: theme,
@@ -307,7 +319,7 @@ struct GoSectionWidgetView: View {
             )
             if namesUnder {
                 Text(app.name)
-                    .font(.system(size: 11, weight: .medium, design: theme.fontStyle.design))
+                    .font(.system(size: family == .systemMedium ? 10 : 11, weight: .medium, design: theme.fontStyle.design))
                     .foregroundStyle(textColor)
                     .lineLimit(1)
                     .frame(width: cell.width)

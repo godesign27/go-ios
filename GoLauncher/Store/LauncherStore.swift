@@ -22,6 +22,8 @@ final class LauncherStore: ObservableObject {
             .store(in: &cancellables)
         cleanupUnusedImages()
         syncInstalledApps()
+        // Let Siri know your app names, for "Open Slack with Go".
+        GoShortcuts.updateAppShortcutParameters()
         fetchOfficialIcons()
     }
 
