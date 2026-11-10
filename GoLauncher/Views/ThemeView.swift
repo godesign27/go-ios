@@ -9,7 +9,6 @@ struct ThemeView: View {
     @State private var confirmReset = false
     @State private var savingWallpaper = false
     @State private var wallpaperMessage: String?
-    @State private var showHomeScreenSetup = false
 
     var body: some View {
         NavigationStack {
@@ -224,8 +223,9 @@ struct ThemeView: View {
 
     private var homeScreenSection: some View {
         Section {
-            Button {
-                showHomeScreenSetup = true
+            // A page inside Design: a second sheet on top of Design closed both.
+            NavigationLink {
+                HomeScreenSetupView()
             } label: {
                 Label("Set Up Go as My Home Screen", systemImage: "iphone.gen3")
             }
@@ -251,9 +251,6 @@ struct ThemeView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(wallpaperMessage ?? "")
-        }
-        .sheet(isPresented: $showHomeScreenSetup) {
-            HomeScreenSetupView()
         }
     }
 

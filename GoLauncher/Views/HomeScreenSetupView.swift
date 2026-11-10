@@ -2,8 +2,6 @@ import SwiftUI
 
 /// Step-by-step guide for turning the iPhone's own Home Screen into Go.
 struct HomeScreenSetupView: View {
-    @Environment(\.dismiss) private var dismiss
-
     private struct Step: Identifiable {
         let id: Int
         let title: String
@@ -32,9 +30,9 @@ struct HomeScreenSetupView: View {
              symbol: "magnifyingglass"),
     ]
 
+    // Shown as a page inside Design's navigation (pushed, not a second sheet).
     var body: some View {
-        NavigationStack {
-            List {
+        List {
                 Section {
                     ForEach(steps) { step in
                         HStack(alignment: .top, spacing: 14) {
@@ -55,11 +53,5 @@ struct HomeScreenSetupView: View {
             }
             .navigationTitle("Go as Your Home Screen")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
     }
 }
