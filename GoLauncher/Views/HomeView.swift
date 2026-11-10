@@ -16,6 +16,12 @@ struct HomeView: View {
     @State private var launchError: String?
     @State private var askingName = false
     @State private var nameDraft = ""
+    @State private var failedApp: LauncherApp?
+    /// Set when a widget, control, Siri or a link opened GO, so the start screen stays out of the way.
+    @State private var openedForRequest = false
+    @State private var backgroundedAt: Date?
+    /// Back after this long in the background counts as opening GO again (start screen shows).
+    private static let startScreenAfter: TimeInterval = 5 * 60
     @StateObject private var weather = WeatherService()
 
     private var theme: Theme { store.state.theme }
@@ -31,6 +37,9 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     header
+                    if store.state.setup.announcementPending && !isEditing {
+                        announcementCard
+                    }
                     if theme.showWidgets {
                         WidgetsRow(weather: weather, theme: theme) { launch($0) }
                     }
@@ -115,22 +124,40 @@ struct HomeView: View {
         } message: {
             Text(launchError ?? "")
         }
+        .alert(
+            "Couldn't open \(failedApp?.name ?? "app")",
+            isPresented: Binding(get: { failedApp != nil }, set: { if !$0 { failedApp = nil } })
+        ) {
+            Button("Fix Link") {
+                if let app = failedApp { activeSheet = .edit(app) }
+                failedApp = nil
+            }
+            Button("Cancel", role: .cancel) { failedApp = nil }
+        } message: {
+            Text("iOS couldn't open it. The app may not be installed, or its link changed. Tap Fix Link to change the link, or set it to run a Shortcut with Open App, which works for any app.")
+        }
         .onOpenURL(perform: handleIncomingURL)
         .onAppear {
-            if theme.searchOnOpen { openSearch() }
             handleWidgetRequestSoon()
+            showStartScreenSoon()
+            if theme.searchOnOpen && store.state.setup.startScreen == .classicLauncher { openSearch() }
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
                 store.mergeWidgetLaunches()
                 handleWidgetRequestSoon()
+                if let since = backgroundedAt, Date().timeIntervalSince(since) > Self.startScreenAfter {
+                    showStartScreenSoon()
+                }
+                backgroundedAt = nil
                 store.syncInstalledApps()
                 if theme.searchOnOpen { openSearch() }
                 if theme.showWidgets, theme.leftWidget == .weather || theme.rightWidget == .weather {
                     weather.refreshIfNeeded()
                 }
             case .background:
+                backgroundedAt = Date()
                 store.saveNow()
             default:
                 break
@@ -165,6 +192,8 @@ struct HomeView: View {
                 .glassButtonStyle(prominent: true)
             } else {
                 Menu {
+                    Button { openGoHome() } label: { Label("Set Up GO Home Screen", systemImage: "iphone.gen3") }
+                    Divider()
                     Button { activeSheet = .add(nil) } label: { Label("Add App", systemImage: "plus.app") }
                     Button { withAnimation { isEditing = true } } label: { Label("Edit Layout", systemImage: "square.grid.2x2") }
                     Button { activeSheet = .groups } label: { Label("Groups & Dock", systemImage: "rectangle.3.group") }
@@ -683,6 +712,10 @@ struct HomeView: View {
         case edit(LauncherApp)
         case groups
         case theme
+        /// GO Home Screen: setup steps and the start screen choice.
+        case goHome
+        /// First launch of a new install.
+        case welcome
 
         var id: String {
             switch self {
@@ -690,6 +723,8 @@ struct HomeView: View {
             case .edit(let app): return "edit-\(app.id)"
             case .groups: return "groups"
             case .theme: return "theme"
+            case .goHome: return "goHome"
+            case .welcome: return "welcome"
             }
         }
     }
@@ -705,13 +740,87 @@ struct HomeView: View {
             }
         case .groups:
             GroupsView()
+        case .goHome:
+            GoHomeView { activeSheet = nil }
+        case .welcome:
+            WelcomeView(
+                chooseHomeScreen: {
+                    store.state.setup.welcomePending = false
+                    store.state.setup.startScreen = .homeScreenSetup
+                    activeSheet = .goHome
+                },
+                chooseClassicLauncher: {
+                    store.state.setup.welcomePending = false
+                    store.state.setup.startScreen = .classicLauncher
+                    activeSheet = nil
+                }
+            )
         case .theme:
             // Opens full height; drag it down to half to watch changes on the home screen.
-            ThemeView()
+            ThemeView(openHomeSetup: { activeSheet = .goHome })
                 .presentationDetents([.medium, .large], selection: $designDetent)
                 .presentationBackgroundInteraction(.enabled(upThrough: .medium))
                 .onAppear { designDetent = .large }
         }
+    }
+
+    // MARK: - Start screen
+
+    private func openGoHome() {
+        store.state.setup.announcementPending = false
+        activeSheet = .goHome
+    }
+
+    /// New installs choose how to start; people who chose GO Home Screen see it when they open
+    /// GO. Waits a moment so a widget or link that opened GO is handled instead.
+    private func showStartScreenSoon() {
+        openedForRequest = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            guard !openedForRequest, activeSheet == nil, !isSearching else { return }
+            if store.state.setup.welcomePending {
+                activeSheet = .welcome
+            } else if store.state.setup.startScreen == .homeScreenSetup {
+                activeSheet = .goHome
+            }
+        }
+    }
+
+    /// A widget, control, Siri or link opened GO: do that, without the start screen on top.
+    private func clearStartScreenForRequest() {
+        openedForRequest = true
+        if case .goHome = activeSheet { activeSheet = nil }
+    }
+
+    /// Existing users: what's new, without changing how GO opens for them.
+    private var announcementCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("New: GO on your Home Screen", systemImage: "iphone.gen3")
+                    .font(.system(.headline, design: theme.fontStyle.design))
+                Spacer()
+                Button {
+                    withAnimation(.snappy) { store.state.setup.announcementPending = false }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                // Full 44pt tap target without pushing the text down.
+                .padding(-12)
+                .accessibilityLabel("Not now")
+            }
+            Text("Put GO's widgets, matching wallpaper and search on your iPhone's Home Screen. Classic Launcher stays just as it is.")
+                .font(.system(.subheadline, design: theme.fontStyle.design))
+            Button("Set Up GO Home Screen") { openGoHome() }
+                .font(.system(.subheadline, design: theme.fontStyle.design).weight(.semibold))
+                .glassButtonStyle(prominent: true)
+        }
+        .foregroundStyle(theme.labelColor)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(in: RoundedRectangle(cornerRadius: 24, style: .continuous), theme: theme)
     }
 
     // MARK: - Launching
@@ -732,8 +841,8 @@ struct HomeView: View {
                     viewAllKey = nil
                 }
             } else {
-                if let before { store.upsert(before) }
-                launchError = "iOS couldn't open \(app.name). The app may not be installed, or its link changed. Edit the icon and try the Shortcut option instead."
+                if let before { store.recordLaunchFailure(restoring: before) }
+                failedApp = store.state.apps.first { $0.id == app.id } ?? app
             }
         }
     }
@@ -758,6 +867,7 @@ struct HomeView: View {
 
     private func handleWidgetRequest() {
         guard let request = GoRequest.take() else { return }
+        clearStartScreenForRequest()
         switch request.kind {
         case .search:
             openSearch()
@@ -770,6 +880,7 @@ struct HomeView: View {
 
     private func handleIncomingURL(_ url: URL) {
         guard url.scheme == "golauncher" else { return }
+        clearStartScreenForRequest()
         let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         switch url.host {
         case "launch":

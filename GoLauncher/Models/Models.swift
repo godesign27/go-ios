@@ -62,6 +62,8 @@ struct LauncherApp: Identifiable, Codable, Hashable {
     var usesOfficialIcon = false
     /// The symbol/emoji icon to restore if official icons are turned off.
     var fallbackGlyph: IconGlyph?
+    /// iOS refused the last time GO tried to open this app (cleared by the next successful open).
+    var lastLaunchFailed = false
 
     static func blank(groupID: UUID) -> LauncherApp {
         LauncherApp(
@@ -157,9 +159,11 @@ enum SmartSection: String, CaseIterable {
 
     var emptyText: String {
         switch self {
-        case .recent, .mostUsed: return "Apps you open from Go will show up here."
+        // Honest about what GO can see: only launches made through GO (or logged by a
+        // Shortcuts automation), and only flags you set yourself.
+        case .recent, .mostUsed: return "Apps you open through GO (here, its widgets, search or Siri) show up here."
         case .favorites: return "Long-press an app and choose Add to Favorites."
-        case .attention: return "Long-press an app and choose Needs Attention to flag it here."
+        case .attention: return "Flag apps yourself: long-press one and choose Needs Attention. GO can't see notifications."
         }
     }
 }
@@ -203,6 +207,7 @@ extension LauncherApp {
         iconLookupDone = try c.decodeIfPresent(Bool.self, forKey: .iconLookupDone) ?? false
         usesOfficialIcon = try c.decodeIfPresent(Bool.self, forKey: .usesOfficialIcon) ?? false
         fallbackGlyph = try c.decodeIfPresent(IconGlyph.self, forKey: .fallbackGlyph)
+        lastLaunchFailed = (try? c.decodeIfPresent(Bool.self, forKey: .lastLaunchFailed)) ?? false
     }
 }
 

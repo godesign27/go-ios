@@ -21,6 +21,8 @@ final class LauncherStore: ObservableObject {
         let loaded = Self.loadState()
         state = loaded.state ?? Self.seed(newUser: !loaded.fileExisted)
         loadedCleanly = loaded.state != nil || !loaded.fileExisted
+        // Saved from now on in this build's format (older fields kept, new ones defaulted).
+        state.schemaVersion = LauncherState.currentSchemaVersion
         mergeWidgetLaunches()
         $state
             .dropFirst()
@@ -290,6 +292,13 @@ final class LauncherStore: ObservableObject {
         state.apps.removeAll { $0.id == appID }
     }
 
+    /// iOS couldn't open the app: undo the launch just recorded and remember the failure.
+    func recordLaunchFailure(restoring before: LauncherApp) {
+        var app = before
+        app.lastLaunchFailed = true
+        upsert(app)
+    }
+
     func toggleDock(_ appID: UUID) {
         guard let index = state.apps.firstIndex(where: { $0.id == appID }) else { return }
         state.apps[index].isDocked.toggle()
@@ -306,6 +315,7 @@ final class LauncherStore: ObservableObject {
         app.launchCount += 1
         app.lastLaunched = Date()
         app.needsAttention = false
+        app.lastLaunchFailed = false
         state.apps[index] = app
         // Save now: Go goes to the background as the other app opens and may be closed by iOS
         // before the usual delayed save runs, which lost launches from Recently Used.

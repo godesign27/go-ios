@@ -9,6 +9,8 @@ struct ThemeView: View {
     @State private var confirmReset = false
     @State private var savingWallpaper = false
     @State private var wallpaperMessage: String?
+    /// Opens GO Home Screen setup (closing Design). Nil when Design was opened from setup.
+    var openHomeSetup: (() -> Void)?
 
     var body: some View {
         NavigationStack {
@@ -22,7 +24,14 @@ struct ThemeView: View {
                 textSection
                 layoutSection
                 Section {
+                    NavigationLink {
+                        RestorePointsView()
+                    } label: {
+                        Label("Restore Points", systemImage: "arrow.uturn.backward.circle")
+                    }
                     Button("Reset Everything to Default", role: .destructive) { confirmReset = true }
+                } footer: {
+                    Text("GO saves a restore point when it updates and before a reset or restore.")
                 }
             }
             .navigationTitle("Design")
@@ -35,7 +44,7 @@ struct ThemeView: View {
             .confirmationDialog("Reset layout and design?", isPresented: $confirmReset, titleVisibility: .visible) {
                 Button("Reset", role: .destructive) { store.resetToDefault() }
             } message: {
-                Text("This restores the starter apps, groups and theme. Your custom icons will be removed.")
+                Text("This restores the starter apps, groups and theme. Your current layout is saved as a restore point first.")
             }
             .onChange(of: wallpaperItem) { _, item in
                 guard let item else { return }
@@ -223,11 +232,11 @@ struct ThemeView: View {
 
     private var homeScreenSection: some View {
         Section {
-            // A page inside Design: a second sheet on top of Design closed both.
-            NavigationLink {
-                HomeScreenSetupView()
-            } label: {
-                Label("Set Up Go as My Home Screen", systemImage: "iphone.gen3")
+            if let openHomeSetup {
+                // Swaps Design for the setup sheet (a second sheet on top of Design closed both).
+                Button(action: openHomeSetup) {
+                    Label("Set Up GO Home Screen", systemImage: "iphone.gen3")
+                }
             }
             Button {
                 Task { await saveWallpaper() }
@@ -263,9 +272,10 @@ struct ThemeView: View {
         }
         switch await WallpaperExporter.saveToPhotos(image) {
         case .saved:
+            store.setStatus(.done, for: .wallpaper)
             wallpaperMessage = "Saved to Photos. Open it in Photos, tap Share › Use as Wallpaper, and choose Home Screen (or both)."
         case .denied:
-            wallpaperMessage = "Go needs permission to add photos. Turn it on in Settings › Privacy & Security › Photos › Go."
+            wallpaperMessage = "GO needs permission to add photos. Turn on Photos access for GO in Settings (Add Photos Only is enough), then try again."
         case .failed:
             wallpaperMessage = "Go couldn't save the wallpaper to Photos. Try again."
         }

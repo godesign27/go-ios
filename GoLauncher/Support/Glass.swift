@@ -83,7 +83,7 @@ extension View {
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
             if prominent {
-                self.buttonStyle(.glassProminent)
+                self.buttonStyle(.glassProminent).tint(GlassTokens.prominentTint)
             } else {
                 self.buttonStyle(.glass)
             }
@@ -98,7 +98,7 @@ extension View {
     @ViewBuilder
     private func fallbackButtonStyle(prominent: Bool) -> some View {
         if prominent {
-            self.buttonStyle(.borderedProminent)
+            self.buttonStyle(.borderedProminent).tint(GlassTokens.prominentTint)
         } else {
             self.buttonStyle(.bordered)
         }
@@ -127,6 +127,9 @@ struct GlassGroup<Content: View>: View {
 // MARK: - Atmospheric glass
 
 enum GlassTokens {
+    /// Filled (prominent) buttons: white text on it is 6.1:1 in light and dark appearance.
+    static let prominentTint = Color(red: 0.357, green: 0.278, blue: 0.878)
+
     /// White fill over the blur.
     static let cardFill = 0.12
     static let iconFill = 0.18
