@@ -1,0 +1,44 @@
+{
+ "apps": [
+  {
+   "colorHex": "#22C55E",
+   "glyph": {
+    "symbol": {
+     "_0": "phone.fill"
+    }
+   },
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "id": "D6BC7809-FBBD-429A-8A3F-6846BAA3E7A1",
+   "launch": {
+    "url": {
+     "_0": "tel:"
+    }
+   },
+   "name": "Phone"
+  },
+  {
+   "glyph": {
+    "symbol": {
+     "_0": "note.text"
+    }
+   },
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "launch": {
+    "url": {
+     "_0": "mobilenotes://"
+    }
+   },
+   "name": "Notes"
+  }
+ ],
+ "groups": [
+  {
+   "id": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "name": "Essentials"
+  }
+ ],
+ "theme": {
+  "columns": 5,
+  "isDark": true
+ }
+}

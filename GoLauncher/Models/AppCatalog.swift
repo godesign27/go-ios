@@ -147,11 +147,27 @@ enum AppCatalog {
     ]
 
     /// The URL scheme Go asks iOS about to tell whether an app is installed ("spotify" for "spotify://").
-    /// Every non-Apple scheme must also be listed under LSApplicationQueriesSchemes in project.yml
-    /// (iOS allows at most 50), or iOS always answers "not installed".
+    /// Only schemes listed under LSApplicationQueriesSchemes in project.yml can be checked
+    /// (25 at most for apps built with the iOS 27 SDK); iOS answers "not installed" for the rest.
     static func scheme(of entry: CatalogEntry) -> String? {
-        guard entry.category != .apple, let colon = entry.url.firstIndex(of: ":") else { return nil }
-        return String(entry.url[..<colon])
+        scheme(ofURL: entry.url).flatMap { entry.category == .apple ? nil : $0 }
+    }
+
+    static func scheme(ofURL url: String) -> String? {
+        guard let colon = url.firstIndex(of: ":") else { return nil }
+        let scheme = String(url[..<colon]).lowercased()
+        return scheme.isEmpty ? nil : scheme
+    }
+
+    /// Schemes this build may ask iOS about (from Info.plist).
+    static let detectableSchemes: Set<String> = Set(
+        ((Bundle.main.object(forInfoDictionaryKey: "LSApplicationQueriesSchemes") as? [String]) ?? []).map { $0.lowercased() }
+    )
+
+    /// Whether GO can tell if this catalog app is installed.
+    static func canDetect(_ entry: CatalogEntry) -> Bool {
+        guard let scheme = scheme(of: entry) else { return false }
+        return detectableSchemes.contains(scheme)
     }
 
     /// Built-in Apple apps that aren't on the App Store, so they have no icon to fetch.

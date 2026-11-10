@@ -99,6 +99,38 @@ struct LauncherState: Codable {
     var favoriteAppIDs: [UUID] = []
     /// Catalog apps Go has already put in your layout (or found there), so one you delete isn't added back.
     var knownCatalogApps: [String] = []
+    /// Format of this file. 1 = every layout saved before versioning (Nov 2026 and earlier).
+    /// Bump only with a migration plan: older builds ignore keys they don't know, so new
+    /// fields must stay optional and additive (see docs/BASELINE.md).
+    var schemaVersion = LauncherState.currentSchemaVersion
+    /// Progress through "Set Up My GO Home Screen" and which screen GO opens to.
+    var setup = HomeSetupState()
+
+    static let currentSchemaVersion = 2
+}
+
+/// The Home Screen-first setup: where GO opens, and which setup steps are done or skipped.
+struct HomeSetupState: Codable, Equatable {
+    enum StartScreen: String, Codable, CaseIterable {
+        /// The full-screen launcher (what GO always opened to before this update).
+        case classicLauncher
+        /// The GO Home Screen hub: setup steps, then Classic Launcher one tap away.
+        case homeScreenSetup
+    }
+
+    var startScreen: StartScreen = .classicLauncher
+    /// Step IDs (SetupStep.rawValue) marked done.
+    var completedSteps: [String] = []
+    /// Step IDs skipped for now; they stay listed and can be done later.
+    var skippedSteps: [String] = []
+    /// A brand-new install: ask once which way to start.
+    var welcomePending = false
+    /// An existing user updating: show a dismissible "new" card, never change their start screen.
+    var announcementPending = false
+
+    /// Layouts saved before this field existed belong to existing users.
+    static let existingUser = HomeSetupState(announcementPending: true)
+    static let newUser = HomeSetupState(welcomePending: true)
 }
 
 /// Sections Go fills in by itself.
@@ -174,11 +206,35 @@ extension LauncherApp {
     }
 }
 
+/// Decodes an array one element at a time, skipping elements this build can't read (for
+/// example a kind of icon added by a newer GO) instead of failing the whole layout.
+struct LossyArray<Element: Decodable>: Decodable {
+    var elements: [Element] = []
+    var skipped = 0
+
+    /// Reads and discards one element, so the container moves past it.
+    private struct Skip: Decodable {
+        init(from decoder: Decoder) throws {}
+    }
+
+    init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        while !container.isAtEnd {
+            if let element = try? container.decode(Element.self) {
+                elements.append(element)
+            } else {
+                _ = try? container.decode(Skip.self)
+                skipped += 1
+            }
+        }
+    }
+}
+
 extension LauncherState {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        groups = try c.decode([AppGroup].self, forKey: .groups)
-        apps = try c.decode([LauncherApp].self, forKey: .apps)
+        groups = try c.decode(LossyArray<AppGroup>.self, forKey: .groups).elements
+        apps = try c.decode(LossyArray<LauncherApp>.self, forKey: .apps).elements
         theme = try c.decodeIfPresent(Theme.self, forKey: .theme) ?? Theme()
         collapsedSections = try c.decodeIfPresent([String].self, forKey: .collapsedSections) ?? []
         sectionOrder = try c.decodeIfPresent([String].self, forKey: .sectionOrder) ?? []
@@ -187,5 +243,18 @@ extension LauncherState {
         recentSearches = try c.decodeIfPresent([String].self, forKey: .recentSearches) ?? []
         favoriteAppIDs = try c.decodeIfPresent([UUID].self, forKey: .favoriteAppIDs) ?? []
         knownCatalogApps = try c.decodeIfPresent([String].self, forKey: .knownCatalogApps) ?? []
+        schemaVersion = (try? c.decodeIfPresent(Int.self, forKey: .schemaVersion)) ?? 1
+        setup = (try? c.decodeIfPresent(HomeSetupState.self, forKey: .setup)) ?? .existingUser
+    }
+}
+
+extension HomeSetupState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        startScreen = (try? c.decodeIfPresent(StartScreen.self, forKey: .startScreen)) ?? .classicLauncher
+        completedSteps = (try? c.decodeIfPresent([String].self, forKey: .completedSteps)) ?? []
+        skippedSteps = (try? c.decodeIfPresent([String].self, forKey: .skippedSteps)) ?? []
+        welcomePending = (try? c.decodeIfPresent(Bool.self, forKey: .welcomePending)) ?? false
+        announcementPending = (try? c.decodeIfPresent(Bool.self, forKey: .announcementPending)) ?? false
     }
 }

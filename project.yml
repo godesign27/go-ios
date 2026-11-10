@@ -14,7 +14,9 @@ targets:
     type: application
     platform: iOS
     # A shared scheme, so command-line builds (scripts/testflight.sh) can find it.
-    scheme: {}
+    scheme:
+      testTargets:
+        - GoLauncherTests
     sources:
       - path: GoLauncher
     # The Home Screen widgets and Go Search control ship inside the app.
@@ -38,52 +40,32 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: Go uses your location only to show local weather in the Weather widget.
         NSPhotoLibraryAddUsageDescription: Go saves your background to Photos so you can use it as your iPhone wallpaper.
-        # Lets Go check which catalog apps are installed (canOpenURL). Keep in sync with the
-        # non-Apple apps in AppCatalog.swift. iOS reads at most 50 entries.
+        # Lets Go check which catalog apps are installed (canOpenURL). Apple: apps linked on
+        # or after iOS 27 may list at most 25 schemes (50 before), and Go builds with the iOS 27
+        # SDK. Order = priority. Other catalog apps still open and can be added by hand; they're
+        # just not detected automatically. GoLauncherTests checks the count and the names.
+        # Not listed (not auto-detected): fb-messenger, barcelona, snssdk1233, snapchat, tg, reddit, pinterest, aiv, disneyplus, hulu, twitch, shazam, googlephotos, duolingo, strava, lyft, waze, com.amazon.mobile.shopping, airbnb, doordash, paypal, squarecash, sgnl
         LSApplicationQueriesSchemes:
-          - instagram
-          - whatsapp
-          - fb-messenger
-          - fb
-          - twitter
-          - barcelona
-          - snssdk1233
-          - snapchat
-          - tg
-          - discord
-          - reddit
-          - pinterest
-          - linkedin
-          - spotify
-          - youtube
-          - nflx
-          - aiv
-          - disneyplus
-          - hulu
-          - twitch
-          - shazam
           - googlegmail
           - ms-outlook
-          - googlechrome
           - slack
           - msteams
           - zoomus
           - notion
           - googledrive
-          - googlephotos
-          - duolingo
-          - strava
+          - googlechrome
+          - whatsapp
+          - instagram
+          - fb
+          - linkedin
+          - twitter
+          - discord
+          - spotify
+          - youtube
+          - nflx
           - comgooglemaps
           - uber
           - venmo
-          - lyft
-          - waze
-          - com.amazon.mobile.shopping
-          - airbnb
-          - doordash
-          - paypal
-          - squarecash
-          - sgnl
           - chatgpt
           - claude
           - googlegemini
@@ -104,6 +86,24 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
         # GO design, Inc. Kept here so regenerating the project doesn't clear the Team.
+        DEVELOPMENT_TEAM: TTM6RL99QG
+
+  # Unit tests for saved-layout compatibility (fixtures from real builds), backups and the
+  # catalog. Run: xcodebuild test -scheme GoLauncher -destination 'platform=iOS Simulator,name=iPhone 17'
+  GoLauncherTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: GoLauncherTests
+    dependencies:
+      - target: GoLauncher
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.godesign.golauncher.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/GoLauncher.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GoLauncher
+        BUNDLE_LOADER: $(TEST_HOST)
+        CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: TTM6RL99QG
 
   # Home Screen widgets ("Go Section") and the Go Search control for Control Center,

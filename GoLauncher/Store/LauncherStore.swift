@@ -8,12 +8,19 @@ final class LauncherStore: ObservableObject {
     @Published var state: LauncherState
 
     private var cancellables = Set<AnyCancellable>()
+    /// False when a saved layout existed but couldn't be read. Photo cleanup is skipped then,
+    /// so restoring the backed-up layout still finds its custom icons and wallpaper.
+    private var loadedCleanly = true
     private let imageCache = NSCache<NSString, UIImage>()
 
     init() {
         // Layouts now live in a folder shared with the Home Screen widgets; bring the old one over.
         SharedPaths.migrateIfNeeded()
-        state = Self.loadState() ?? Self.seed()
+        // A restore point before this build saves anything (once per new build).
+        StateBackups.live.backupIfNewBuild()
+        let loaded = Self.loadState()
+        state = loaded.state ?? Self.seed(newUser: !loaded.fileExisted)
+        loadedCleanly = loaded.state != nil || !loaded.fileExisted
         mergeWidgetLaunches()
         $state
             .dropFirst()
@@ -62,7 +69,9 @@ final class LauncherStore: ObservableObject {
     /// Apple's built-in apps are assumed present; others are checked with canOpenURL.
     private static func isInstalled(_ entry: CatalogEntry) -> Bool {
         if entry.category == .apple { return true }
-        guard let scheme = AppCatalog.scheme(of: entry), let url = URL(string: "\(scheme)://") else { return false }
+        // Not in this build's query list: iOS would always say "no", so don't ask.
+        guard AppCatalog.canDetect(entry),
+              let scheme = AppCatalog.scheme(of: entry), let url = URL(string: "\(scheme)://") else { return false }
         return UIApplication.shared.canOpenURL(url)
     }
 
@@ -436,7 +445,11 @@ final class LauncherStore: ObservableObject {
     }
 
     func resetToDefault() {
+        saveNow()
+        StateBackups.live.backup(reason: "manual")
+        let setup = state.setup
         state = Self.seed()
+        state.setup = setup
     }
 
     // MARK: - Images
@@ -464,7 +477,9 @@ final class LauncherStore: ObservableObject {
 
     /// Removes photos no icon or wallpaper uses any more (e.g. replaced or cancelled picks).
     private func cleanupUnusedImages() {
-        var used = Set<String>()
+        guard loadedCleanly else { return }
+        // Photos used by restore points stay, so restoring one brings its icons back.
+        var used = StateBackups.live.referencedImages()
         for app in state.apps {
             if case .image(let name) = app.glyph { used.insert(name) }
         }
@@ -506,22 +521,55 @@ final class LauncherStore: ObservableObject {
         WidgetLaunchLog.clear()
     }
 
-    private static func loadState() -> LauncherState? {
-        guard let data = try? Data(contentsOf: stateURL) else { return nil }
+    private static func loadState() -> (state: LauncherState?, fileExisted: Bool) {
+        guard let data = try? Data(contentsOf: stateURL) else { return (nil, false) }
         do {
-            return try JSONDecoder().decode(LauncherState.self, from: data)
+            let state = try JSONDecoder().decode(LauncherState.self, from: data)
+            if Self.skippedItems(in: data, decoded: state) {
+                // Some apps or groups couldn't be read (e.g. saved by a newer GO). Keep the
+                // original file as a restore point before this build saves over it.
+                StateBackups.live.backup(reason: "unreadable")
+            }
+            return (state, true)
         } catch {
-            // Keep the unreadable file around rather than silently losing it.
-            let backup = baseURL.appendingPathComponent("state-backup-\(Int(Date().timeIntervalSince1970)).json")
-            try? FileManager.default.moveItem(at: stateURL, to: backup)
-            print("GoLauncher: couldn't read saved layout, backed up to \(backup.lastPathComponent): \(error)")
-            return nil
+            // Keep the unreadable file as a restore point rather than silently losing it.
+            let copy = StateBackups.live.backup(reason: "unreadable")
+            print("GoLauncher: couldn't read saved layout, kept \(copy?.lastPathComponent ?? "nothing"): \(error)")
+            return (nil, true)
         }
+    }
+
+    /// True if the file lists more apps or groups than were decoded.
+    static func skippedItems(in data: Data, decoded: LauncherState) -> Bool {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return false }
+        let apps = (object["apps"] as? [Any])?.count ?? 0
+        let groups = (object["groups"] as? [Any])?.count ?? 0
+        return apps > decoded.apps.count || groups > decoded.groups.count
+    }
+
+    // MARK: - Restore points
+
+    var backups: [StateBackups.Backup] { StateBackups.live.list() }
+
+    /// Replaces the layout with a restore point, after saving the current one as another
+    /// restore point. Returns false (and changes nothing) if the copy can't be read.
+    @discardableResult
+    func restore(_ backup: StateBackups.Backup) -> Bool {
+        guard var restored = StateBackups.live.load(backup) else { return false }
+        saveNow()
+        StateBackups.live.backup(reason: "restore")
+        // Setup progress isn't part of the layout being restored; keep the current one.
+        restored.setup = state.setup
+        restored.setup.announcementPending = false
+        restored.schemaVersion = LauncherState.currentSchemaVersion
+        state = restored
+        saveNow()
+        return true
     }
 
     // MARK: - Starter layout
 
-    static func seed() -> LauncherState {
+    static func seed(newUser: Bool = false) -> LauncherState {
         let essentials = AppGroup(name: "Essentials")
         let everyday = AppGroup(name: "Everyday")
         let tools = AppGroup(name: "Tools")
@@ -566,6 +614,8 @@ final class LauncherStore: ObservableObject {
         // Starter favorites; change them by long-pressing any app.
         let favorites = ["Messages", "Safari", "Music", "Claude"]
         state.favoriteAppIDs = favorites.compactMap { name in starterApps.first { $0.name == name }?.id }
+        // A first install picks how to start; a layout reset keeps whatever was chosen.
+        state.setup = newUser ? .newUser : HomeSetupState()
         return state
     }
 }

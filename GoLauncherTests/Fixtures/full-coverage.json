@@ -1,0 +1,784 @@
+{
+ "apps": [
+  {
+   "colorHex": "#22C55E",
+   "glyph": {
+    "symbol": {
+     "_0": "phone.fill"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "iconLookupDone": true,
+   "id": "D6BC7809-FBBD-429A-8A3F-6846BAA3E7A1",
+   "isDocked": true,
+   "keywords": "call dial",
+   "launch": {
+    "url": {
+     "_0": "tel:"
+    }
+   },
+   "launchCount": 0,
+   "name": "Phone",
+   "needsAttention": false,
+   "usesOfficialIcon": false
+  },
+  {
+   "colorHex": "#22C55E",
+   "glyph": {
+    "symbol": {
+     "_0": "message.fill"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "iconLookupDone": true,
+   "id": "E9EC57BE-9D2E-43A1-8558-75490646636E",
+   "isDocked": true,
+   "keywords": "text chat imessage sms",
+   "launch": {
+    "url": {
+     "_0": "sms:"
+    }
+   },
+   "launchCount": 0,
+   "name": "Messages",
+   "needsAttention": false,
+   "usesOfficialIcon": false
+  },
+  {
+   "colorHex": "#0EA5E9",
+   "glyph": {
+    "symbol": {
+     "_0": "safari.fill"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "iconLookupDone": true,
+   "id": "D3F4F91C-9240-4C6C-92CA-87E514F6DDC9",
+   "isDocked": true,
+   "keywords": "web browser internet",
+   "launch": {
+    "url": {
+     "_0": "x-web-search://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Safari",
+   "needsAttention": false,
+   "usesOfficialIcon": false
+  },
+  {
+   "bundleID": "com.apple.Music",
+   "colorHex": "#F43F5E",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "music.note"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "F8FB644D-C7BE-4BF8-BC12-263D7A79CF4D.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "iconLookupDone": true,
+   "id": "7A2D20D7-C26D-473D-9ADE-564C43A4CDAA",
+   "isDocked": true,
+   "keywords": "songs",
+   "launch": {
+    "url": {
+     "_0": "music://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Music",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.apple.mobilemail",
+   "colorHex": "#3B82F6",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "envelope.fill"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "E42C51EC-79CB-4AE8-81F8-DA46169B6EC5.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "iconLookupDone": true,
+   "id": "ED2B72F8-096E-412D-9270-0CA6AB03C4E6",
+   "isDocked": false,
+   "keywords": "email inbox",
+   "launch": {
+    "url": {
+     "_0": "message://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Mail",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "colorHex": "#F59E0B",
+   "glyph": {
+    "symbol": {
+     "_0": "photo.on.rectangle"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "iconLookupDone": true,
+   "id": "BA221ED1-20DD-43E6-9332-15A6F5B3ACA4",
+   "isDocked": false,
+   "keywords": "pictures gallery",
+   "launch": {
+    "url": {
+     "_0": "photos-redirect://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Photos",
+   "needsAttention": false,
+   "usesOfficialIcon": false
+  },
+  {
+   "bundleID": "com.apple.Maps",
+   "colorHex": "#10B981",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "map.fill"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "514B7C3D-23DA-49D3-ABE9-E62E28CEB0BB.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "iconLookupDone": true,
+   "id": "B2188C62-CDF0-41B0-A2F6-474A68A16886",
+   "isDocked": false,
+   "keywords": "directions navigation",
+   "launch": {
+    "url": {
+     "_0": "maps://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Maps",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.apple.mobilecal",
+   "colorHex": "#EF4444",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "calendar"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "D8370006-C473-420E-958F-4E9AD9F2005C.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "iconLookupDone": true,
+   "id": "6D1502C8-F79C-42FC-94CA-C9E54BCD4C42",
+   "isDocked": false,
+   "keywords": "events schedule",
+   "launch": {
+    "url": {
+     "_0": "calshow://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Calendar",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.apple.weather",
+   "colorHex": "#38BDF8",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "cloud.sun.fill"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "4DCA323D-A738-4550-BEB8-0D10A2946E70.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "7BB44B3D-28A7-4BA3-BF10-207251FCC14D",
+   "iconLookupDone": true,
+   "id": "D4AD6851-2967-4350-BDC2-E6BBFE23855D",
+   "isDocked": false,
+   "keywords": "",
+   "launch": {
+    "url": {
+     "_0": "weather://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Weather",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.apple.mobilenotes",
+   "colorHex": "#EAB308",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "note.text"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "E65D7F09-E836-47C2-9CE4-A51017C1A6D9.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "7BB44B3D-28A7-4BA3-BF10-207251FCC14D",
+   "iconLookupDone": true,
+   "id": "0EF7248F-9F39-464D-A745-DC6D68EE2D01",
+   "isDocked": false,
+   "keywords": "",
+   "launch": {
+    "url": {
+     "_0": "mobilenotes://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Notes",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.apple.reminders",
+   "colorHex": "#F97316",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "checklist"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "44F7A881-3291-48AD-AC71-4B0F9B7E2FB4.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "7BB44B3D-28A7-4BA3-BF10-207251FCC14D",
+   "iconLookupDone": true,
+   "id": "4AD6BAA3-229D-4134-9846-E07CBEB11BA5",
+   "isDocked": false,
+   "keywords": "todo tasks",
+   "launch": {
+    "url": {
+     "_0": "x-apple-reminderkit://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Reminders",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.apple.podcasts",
+   "colorHex": "#A855F7",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "antenna.radiowaves.left.and.right"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "54771480-CFE8-4A35-9DE3-8C1D727D4736.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "7BB44B3D-28A7-4BA3-BF10-207251FCC14D",
+   "iconLookupDone": true,
+   "id": "6A8972A9-EBF6-428D-9CA2-D42465411C60",
+   "isDocked": false,
+   "keywords": "",
+   "launch": {
+    "url": {
+     "_0": "podcasts://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Podcasts",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "colorHex": "#78716C",
+   "glyph": {
+    "symbol": {
+     "_0": "gearshape.fill"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "B1C2FD2A-7741-4790-9B74-D4B81FE79BB4",
+   "iconLookupDone": true,
+   "id": "E1ECEEAD-2973-4294-929C-118420605970",
+   "isDocked": false,
+   "keywords": "preferences wifi bluetooth",
+   "launch": {
+    "url": {
+     "_0": "App-prefs:"
+    }
+   },
+   "launchCount": 0,
+   "name": "Settings",
+   "needsAttention": false,
+   "usesOfficialIcon": false
+  },
+  {
+   "bundleID": "com.apple.shortcuts",
+   "colorHex": "#6366F1",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "square.stack.3d.up.fill"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "0FA06210-A308-4BF4-B7B8-F6403182EB9C.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "B1C2FD2A-7741-4790-9B74-D4B81FE79BB4",
+   "iconLookupDone": true,
+   "id": "B7A39F7A-14D3-4CAA-834E-061B0F921991",
+   "isDocked": false,
+   "keywords": "automation",
+   "launch": {
+    "url": {
+     "_0": "shortcuts://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Shortcuts",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.apple.DocumentsApp",
+   "colorHex": "#3B82F6",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "folder.fill"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "D415B5A6-1BBA-4F71-BFA5-27C5B3065DCD.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "B1C2FD2A-7741-4790-9B74-D4B81FE79BB4",
+   "iconLookupDone": true,
+   "id": "6CE07C62-B5F0-458A-8C05-5798DF95BEA7",
+   "isDocked": false,
+   "keywords": "documents",
+   "launch": {
+    "url": {
+     "_0": "shareddocuments://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Files",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "colorHex": "#0EA5E9",
+   "glyph": {
+    "symbol": {
+     "_0": "bag.fill"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "B1C2FD2A-7741-4790-9B74-D4B81FE79BB4",
+   "iconLookupDone": true,
+   "id": "93B9F21B-1C57-49CF-BE91-E975C9584073",
+   "isDocked": false,
+   "keywords": "download",
+   "launch": {
+    "url": {
+     "_0": "itms-apps://"
+    }
+   },
+   "launchCount": 0,
+   "name": "App Store",
+   "needsAttention": false,
+   "usesOfficialIcon": false
+  },
+  {
+   "bundleID": "com.openai.chat",
+   "colorHex": "#10A37F",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "sparkles"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "46826194-37DD-4F76-A41C-7B690ABF29CA.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "C101F949-FF19-421F-8F61-A77F6F65A8E6",
+   "iconLookupDone": true,
+   "id": "587BF1AC-570A-4BC0-9823-4C0D0E80E518",
+   "isDocked": false,
+   "keywords": "ai openai chat gpt",
+   "launch": {
+    "url": {
+     "_0": "chatgpt://"
+    }
+   },
+   "launchCount": 0,
+   "name": "ChatGPT",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.anthropic.claude",
+   "colorHex": "#D97757",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "asterisk"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "9D9C3508-E044-4F46-B8D9-5E125CF7BFAB.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "C101F949-FF19-421F-8F61-A77F6F65A8E6",
+   "iconLookupDone": true,
+   "id": "8E7155A2-8C92-4A65-9BF7-C489C8C7EA60",
+   "isDocked": false,
+   "keywords": "ai anthropic chat",
+   "launch": {
+    "url": {
+     "_0": "claude://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Claude",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.google.gemini",
+   "colorHex": "#4F7DF3",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "sparkle"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "FC03A320-CD16-471B-8538-28306A104D98.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "C101F949-FF19-421F-8F61-A77F6F65A8E6",
+   "iconLookupDone": true,
+   "id": "3B8DB3FC-F891-47F6-83FD-BC50189605C6",
+   "isDocked": false,
+   "keywords": "ai google bard",
+   "launch": {
+    "url": {
+     "_0": "googlegemini://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Gemini",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "colorHex": "#1F6F78",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "magnifyingglass.circle.fill"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "980DC61C-EFA4-4611-BFE6-7B1AAC8122B7.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "C101F949-FF19-421F-8F61-A77F6F65A8E6",
+   "iconLookupDone": true,
+   "id": "7B0CB492-820F-48CE-B18E-935F2C8D51E4",
+   "isDocked": false,
+   "keywords": "ai search answer",
+   "launch": {
+    "url": {
+     "_0": "perplexity-app://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Perplexity",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "bundleID": "com.apple.iBooks",
+   "colorHex": "#F97316",
+   "fallbackGlyph": {
+    "symbol": {
+     "_0": "book.fill"
+    }
+   },
+   "glyph": {
+    "image": {
+     "_0": "5AADB16A-ADC9-4857-85DE-BF608625FBC1.jpg"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "D876894A-90C5-44E8-85D9-81F2155A0AA9",
+   "iconLookupDone": true,
+   "id": "49545B13-E853-444F-A7CB-520A72C2E037",
+   "isDocked": false,
+   "keywords": "read",
+   "launch": {
+    "url": {
+     "_0": "ibooks://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Books",
+   "needsAttention": false,
+   "usesOfficialIcon": true
+  },
+  {
+   "colorHex": "#EC4899",
+   "glyph": {
+    "symbol": {
+     "_0": "heart.fill"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "D876894A-90C5-44E8-85D9-81F2155A0AA9",
+   "iconLookupDone": true,
+   "id": "6C6753AF-78D4-43CD-AC60-A4A87E795396",
+   "isDocked": false,
+   "keywords": "fitness steps",
+   "launch": {
+    "url": {
+     "_0": "x-apple-health://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Health",
+   "needsAttention": false,
+   "usesOfficialIcon": false
+  },
+  {
+   "colorHex": "#111827",
+   "glyph": {
+    "symbol": {
+     "_0": "wallet.pass.fill"
+    }
+   },
+   "glyphColorHex": "#FFFFFF",
+   "groupID": "D876894A-90C5-44E8-85D9-81F2155A0AA9",
+   "iconLookupDone": true,
+   "id": "ADF8C91B-F816-40E0-BBAE-8507E81AD24C",
+   "isDocked": false,
+   "keywords": "cards pay",
+   "launch": {
+    "url": {
+     "_0": "shoebox://"
+    }
+   },
+   "launchCount": 0,
+   "name": "Wallet",
+   "needsAttention": false,
+   "usesOfficialIcon": false
+  },
+  {
+   "colorHex": "#123456",
+   "glyph": {
+    "image": {
+     "_0": "11111111-2222-4333-8444-555555555555.jpg"
+    }
+   },
+   "glyphColorHex": "#000000",
+   "groupID": "0A0A0A0A-1111-4222-8333-444444444444",
+   "iconLookupDone": true,
+   "id": "1B1B1B1B-0000-4000-8000-000000000001",
+   "isDocked": false,
+   "keywords": "custom photo",
+   "lastLaunched": 784000000.5,
+   "launch": {
+    "url": {
+     "_0": "https://example.com"
+    }
+   },
+   "launchCount": 7,
+   "name": "My Photo App",
+   "needsAttention": true,
+   "secondaryColorHex": "#654321",
+   "usesOfficialIcon": false
+  },
+  {
+   "colorHex": "#22C55E",
+   "glyph": {
+    "emoji": {
+     "_0": "\ud83c\udfe6"
+    }
+   },
+   "groupID": "0A0A0A0A-1111-4222-8333-444444444444",
+   "id": "1B1B1B1B-0000-4000-8000-000000000002",
+   "isDocked": true,
+   "lastLaunched": 783999000.0,
+   "launch": {
+    "shortcut": {
+     "_0": "Open Banking"
+    }
+   },
+   "launchCount": 3,
+   "name": "Run My Shortcut"
+  }
+ ],
+ "collapsedSections": [
+  "attention"
+ ],
+ "favoriteAppIDs": [
+  "1B1B1B1B-0000-4000-8000-000000000002",
+  "1B1B1B1B-0000-4000-8000-000000000001",
+  "E9EC57BE-9D2E-43A1-8558-75490646636E",
+  "D3F4F91C-9240-4C6C-92CA-87E514F6DDC9"
+ ],
+ "groups": [
+  {
+   "id": "527E2D8F-40F5-4B69-BC65-CE428573102D",
+   "isCollapsed": false,
+   "name": "Essentials"
+  },
+  {
+   "id": "7BB44B3D-28A7-4BA3-BF10-207251FCC14D",
+   "isCollapsed": false,
+   "name": "Everyday"
+  },
+  {
+   "id": "B1C2FD2A-7741-4790-9B74-D4B81FE79BB4",
+   "isCollapsed": false,
+   "name": "Tools"
+  },
+  {
+   "id": "C101F949-FF19-421F-8F61-A77F6F65A8E6",
+   "isCollapsed": false,
+   "name": "AI"
+  },
+  {
+   "id": "D876894A-90C5-44E8-85D9-81F2155A0AA9",
+   "isCollapsed": false,
+   "name": "Your Apps"
+  },
+  {
+   "id": "0A0A0A0A-1111-4222-8333-444444444444",
+   "isCollapsed": true,
+   "name": "Work"
+  }
+ ],
+ "hiddenSections": [
+  "mostUsed"
+ ],
+ "knownCatalogApps": [
+  "App Store",
+  "Books",
+  "Calendar",
+  "ChatGPT",
+  "Claude",
+  "Files",
+  "Gemini",
+  "Health",
+  "Mail",
+  "Maps",
+  "Messages",
+  "Music",
+  "Notes",
+  "Perplexity",
+  "Phone",
+  "Photos",
+  "Podcasts",
+  "Reminders",
+  "Safari",
+  "Settings",
+  "Shortcuts",
+  "Slack",
+  "Wallet",
+  "Weather"
+ ],
+ "recentSearches": [
+  "slack",
+  "weather"
+ ],
+ "sectionOrder": [
+  "recent",
+  "favorites",
+  "527E2D8F-40F5-4B69-BC65-CE428573102D",
+  "0A0A0A0A-1111-4222-8333-444444444444",
+  "mostUsed",
+  "7BB44B3D-28A7-4BA3-BF10-207251FCC14D",
+  "B1C2FD2A-7741-4790-9B74-D4B81FE79BB4",
+  "C101F949-FF19-421F-8F61-A77F6F65A8E6",
+  "D876894A-90C5-44E8-85D9-81F2155A0AA9",
+  "attention"
+ ],
+ "showDock": true,
+ "theme": {
+  "backgroundBottomHex": "#1E3A8A",
+  "backgroundTopHex": "#0EA5E9",
+  "bundledWallpaper": "WallpaperTwilight",
+  "cardMaterial": "frosted",
+  "columns": 4,
+  "cornerFactor": 0.24,
+  "fillCells": false,
+  "fontStyle": "rounded",
+  "iconSize": 62,
+  "iconSpacing": 6,
+  "isDark": true,
+  "labelColorHex": "#FFFFFF",
+  "labelsInside": false,
+  "leftWidget": "dateTime",
+  "rightWidget": "weather",
+  "searchOnOpen": false,
+  "sectionLayout": "rows",
+  "showClock": true,
+  "showGroupCards": false,
+  "showLabels": true,
+  "showWidgets": true,
+  "uniformGlyphHex": "#FFFFFF",
+  "uniformIconColors": false,
+  "uniformIconHex": "#FFFFFF33",
+  "useOfficialIcons": true,
+  "userName": "Fixture",
+  "wallpaperDim": 0,
+  "wallpaperFilename": "99999999-8888-4777-8666-555555555555.jpg",
+  "widgetOpensDirectly": true
+ }
+}
