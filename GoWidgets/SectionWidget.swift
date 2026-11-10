@@ -7,38 +7,29 @@ import WidgetKit
 
 // MARK: - Configuration
 
-struct GoSectionEntity: AppEntity {
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Go Section"
-    static var defaultQuery = GoSectionQuery()
-
-    let id: String
-    let title: String
-
-    var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(title)")
+/// The sections you can pick, as plain keys ("favorites", or a group's ID) with their names.
+/// A plain string survives Edit Widget reliably; a custom entity was saved but never read back,
+/// so every widget fell back to the default section.
+struct GoSectionOptions: DynamicOptionsProvider {
+    func results() async throws -> ItemCollection<String> {
+        ItemCollection {
+            ItemSection(items: Self.choices().map { IntentItem($0.key, title: "\($0.title)") })
+        }
     }
 
-    static let favorites = GoSectionEntity(id: SmartSection.favorites.rawValue, title: SmartSection.favorites.title)
-}
-
-struct GoSectionQuery: EntityQuery {
-    func entities(for identifiers: [GoSectionEntity.ID]) async throws -> [GoSectionEntity] {
-        Self.all().filter { identifiers.contains($0.id) }
-    }
-
-    func suggestedEntities() async throws -> [GoSectionEntity] {
-        Self.all()
-    }
-
-    func defaultResult() async -> GoSectionEntity? {
-        .favorites
+    /// Starts on your first group (Favorites, Recently Used and Most Used have their own widgets).
+    func defaultResult() async -> String? {
+        Self.firstGroupKey
     }
 
     /// Your sections, read from the layout the app saved.
-    static func all() -> [GoSectionEntity] {
-        let choices = SharedStore.loadState()?.widgetSectionChoices
+    static func choices() -> [(key: String, title: String)] {
+        SharedStore.loadState()?.widgetSectionChoices
             ?? SmartSection.allCases.map { (key: $0.rawValue, title: $0.title) }
-        return choices.map { GoSectionEntity(id: $0.key, title: $0.title) }
+    }
+
+    static var firstGroupKey: String {
+        choices().first { SmartSection(rawValue: $0.key) == nil }?.key ?? SmartSection.favorites.rawValue
     }
 }
 
@@ -46,14 +37,10 @@ struct GoSectionIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Go Section"
     static var description = IntentDescription("Shows one of your Go sections on the Home Screen.")
 
-    @Parameter(title: "Section")
-    var section: GoSectionEntity?
+    @Parameter(title: "Section", optionsProvider: GoSectionOptions())
+    var section: String?
 
     init() {}
-
-    init(section: GoSectionEntity) {
-        self.section = section
-    }
 }
 
 // MARK: - Timeline
@@ -76,16 +63,24 @@ struct GoSectionProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: GoSectionIntent, in context: Context) async -> Timeline<GoSectionEntry> {
         let entry = entry(for: configuration, family: context.family) ?? Self.sample()
-        // The app refreshes widgets whenever your layout changes. This later refresh picks up
-        // launches made from other widgets in the meantime.
-        return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(30 * 60)))
+        return Self.timeline(with: entry)
+    }
+
+    /// The app refreshes widgets whenever your layout changes. This later refresh picks up
+    /// launches made from other widgets in the meantime.
+    static func timeline(with entry: GoSectionEntry) -> Timeline<GoSectionEntry> {
+        Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(30 * 60)))
     }
 
     private func entry(for configuration: GoSectionIntent, family: WidgetFamily) -> GoSectionEntry? {
+        let key = configuration.section ?? GoSectionOptions.firstGroupKey
+        return Self.entry(key: key, family: family)
+    }
+
+    static func entry(key: String, family: WidgetFamily) -> GoSectionEntry? {
         guard let state = SharedStore.currentState() else { return nil }
         let grid = Self.grid(family: family, theme: state.theme)
         let limit = grid.columns * grid.rows
-        let key = configuration.section?.id ?? SmartSection.favorites.rawValue
         let content = state.sectionContent(for: key, limit: limit)
             // A group that was deleted falls back to Favorites.
             ?? state.sectionContent(for: SmartSection.favorites.rawValue, limit: limit)
@@ -107,26 +102,84 @@ struct GoSectionProvider: AppIntentTimelineProvider {
     }
 
     /// Shown in the widget gallery before Go has saved a layout.
-    static func sample() -> GoSectionEntry {
+    static func sample(key: String = SmartSection.favorites.rawValue) -> GoSectionEntry {
         let names = ["Messages", "Safari", "Music", "Maps", "Mail", "Photos", "Calendar", "Weather",
                      "Notes", "Spotify", "YouTube", "ChatGPT", "Claude", "Podcasts", "Files", "Settings"]
         let group = UUID()
         let apps = names.compactMap { AppCatalog.entry(named: $0)?.makeApp(groupID: group) }
-        let content = SectionContent(key: SmartSection.favorites.rawValue, title: SmartSection.favorites.title,
-                                     symbol: SmartSection.favorites.symbol, apps: apps, totalCount: apps.count)
+        let smart = SmartSection(rawValue: key) ?? .favorites
+        let content = SectionContent(key: smart.rawValue, title: smart.title,
+                                     symbol: smart.symbol, apps: apps, totalCount: apps.count)
         return GoSectionEntry(date: Date(), content: content, theme: Theme(), opensDirectly: true)
     }
 }
 
-// MARK: - Widget
+// MARK: - Widgets
 
+/// A widget that always shows one automatic section, so it appears in the widget gallery
+/// under its own name with nothing to set up.
+struct FixedSectionProvider: TimelineProvider {
+    let section: SmartSection
+
+    func placeholder(in context: Context) -> GoSectionEntry {
+        GoSectionProvider.sample(key: section.rawValue)
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (GoSectionEntry) -> Void) {
+        let entry = GoSectionProvider.entry(key: section.rawValue, family: context.family)
+        // In the widget gallery, an empty Recently Used or Most Used would show nothing worth
+        // adding, so preview it with example apps. On the Home Screen it shows your real apps.
+        if context.isPreview, entry?.content.apps.isEmpty ?? true {
+            completion(GoSectionProvider.sample(key: section.rawValue))
+        } else {
+            completion(entry ?? GoSectionProvider.sample(key: section.rawValue))
+        }
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<GoSectionEntry>) -> Void) {
+        let entry = GoSectionProvider.entry(key: section.rawValue, family: context.family)
+            ?? GoSectionProvider.sample(key: section.rawValue)
+        completion(GoSectionProvider.timeline(with: entry))
+    }
+}
+
+private func fixedSectionWidget(_ section: SmartSection, kind: String, description: String) -> some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: FixedSectionProvider(section: section)) { entry in
+        GoSectionWidgetView(entry: entry)
+    }
+    .configurationDisplayName(section.title)
+    .description(description)
+    .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    .contentMarginsDisabled()
+}
+
+struct FavoritesWidget: Widget {
+    var body: some WidgetConfiguration {
+        fixedSectionWidget(.favorites, kind: "GoFavorites", description: "The apps you've added to Favorites in Go.")
+    }
+}
+
+struct RecentlyUsedWidget: Widget {
+    var body: some WidgetConfiguration {
+        fixedSectionWidget(.recent, kind: "GoRecentlyUsed", description: "The apps you opened most recently from Go.")
+    }
+}
+
+struct MostUsedWidget: Widget {
+    var body: some WidgetConfiguration {
+        fixedSectionWidget(.mostUsed, kind: "GoMostUsed", description: "The apps you open most from Go.")
+    }
+}
+
+/// Your groups (Essentials, AI, Tools…) or any section. Long-press › Edit Widget to choose.
+/// The kind stays "GoSection" so widgets already on your Home Screen keep working.
 struct GoSectionWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "GoSection", intent: GoSectionIntent.self, provider: GoSectionProvider()) { entry in
             GoSectionWidgetView(entry: entry)
         }
-        .configurationDisplayName("Go Section")
-        .description("Your Go apps, styled like Go. Long-press › Edit Widget to pick the section.")
+        .configurationDisplayName("Go Group")
+        .description("One of your groups: Essentials, AI, Tools and more. Long-press › Edit Widget to choose.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         // Go draws its own margins, so Tiles style can run edge to edge.
         .contentMarginsDisabled()

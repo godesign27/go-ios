@@ -5,6 +5,9 @@ import WidgetKit
 @main
 struct GoWidgetsBundle: WidgetBundle {
     var body: some Widget {
+        FavoritesWidget()
+        RecentlyUsedWidget()
+        MostUsedWidget()
         GoSectionWidget()
         GoSearchControl()
     }
