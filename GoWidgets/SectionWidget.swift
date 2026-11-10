@@ -45,11 +45,22 @@ struct GoSectionIntent: WidgetConfigurationIntent {
 
 // MARK: - Timeline
 
+extension GoSectionEntry {
+    func sized(_ size: CGSize) -> GoSectionEntry {
+        var copy = self
+        if size.width > 0, size.height > 0 { copy.displaySize = size }
+        return copy
+    }
+}
+
 struct GoSectionEntry: TimelineEntry {
     let date: Date
     let content: SectionContent
     let theme: Theme
     let opensDirectly: Bool
+    /// The widget's size on screen, so tiles can be laid out without a GeometryReader
+    /// (links inside a GeometryReader weren't registered as tap targets).
+    var displaySize: CGSize = CGSize(width: 338, height: 158)
 }
 
 struct GoSectionProvider: AppIntentTimelineProvider {
@@ -58,11 +69,11 @@ struct GoSectionProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: GoSectionIntent, in context: Context) async -> GoSectionEntry {
-        entry(for: configuration, family: context.family) ?? Self.sample()
+        entry(for: configuration, family: context.family)?.sized(context.displaySize) ?? Self.sample().sized(context.displaySize)
     }
 
     func timeline(for configuration: GoSectionIntent, in context: Context) async -> Timeline<GoSectionEntry> {
-        let entry = entry(for: configuration, family: context.family) ?? Self.sample()
+        let entry = entry(for: configuration, family: context.family)?.sized(context.displaySize) ?? Self.sample().sized(context.displaySize)
         return Self.timeline(with: entry)
     }
 
@@ -126,19 +137,19 @@ struct FixedSectionProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (GoSectionEntry) -> Void) {
-        let entry = GoSectionProvider.entry(key: section.rawValue, family: context.family)
+        let entry = GoSectionProvider.entry(key: section.rawValue, family: context.family)?.sized(context.displaySize)
         // In the widget gallery, an empty Recently Used or Most Used would show nothing worth
         // adding, so preview it with example apps. On the Home Screen it shows your real apps.
         if context.isPreview, entry?.content.apps.isEmpty ?? true {
-            completion(GoSectionProvider.sample(key: section.rawValue))
+            completion(GoSectionProvider.sample(key: section.rawValue).sized(context.displaySize))
         } else {
-            completion(entry ?? GoSectionProvider.sample(key: section.rawValue))
+            completion(entry ?? GoSectionProvider.sample(key: section.rawValue).sized(context.displaySize))
         }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<GoSectionEntry>) -> Void) {
-        let entry = GoSectionProvider.entry(key: section.rawValue, family: context.family)
-            ?? GoSectionProvider.sample(key: section.rawValue)
+        let entry = GoSectionProvider.entry(key: section.rawValue, family: context.family)?.sized(context.displaySize)
+            ?? GoSectionProvider.sample(key: section.rawValue).sized(context.displaySize)
         completion(GoSectionProvider.timeline(with: entry))
     }
 }
@@ -209,9 +220,7 @@ struct GoSectionWidgetView: View {
             if entry.content.apps.isEmpty {
                 emptyState
             } else {
-                GeometryReader { geo in
-                    tiles(in: geo.size, grid: grid)
-                }
+                tiles(in: tileArea, grid: grid)
             }
         }
         .padding(isTiles ? 0 : 14)
@@ -220,6 +229,14 @@ struct GoSectionWidgetView: View {
         }
         // Tapping around the tiles opens the whole section in Go.
         .widgetURL(URL(string: "golauncher://section?key=\(entry.content.key)"))
+    }
+
+    /// Room left for tiles: the widget minus its padding and the header line.
+    private var tileArea: CGSize {
+        let padding: CGFloat = isTiles ? 0 : 14
+        let headerHeight: CGFloat = (!isTiles && family != .systemSmall) ? 16 + 8 : 0
+        return CGSize(width: max(0, entry.displaySize.width - padding * 2),
+                      height: max(0, entry.displaySize.height - padding * 2 - headerHeight))
     }
 
     private var header: some View {
@@ -299,12 +316,15 @@ struct GoSectionWidgetView: View {
         .frame(width: cell.width, height: cell.height, alignment: .top)
         .accessibilityLabel(app.name)
 
-        if entry.opensDirectly {
+        if family == .systemSmall {
+            // iOS treats a small widget as one tap target and ignores links inside it, so a
+            // button that runs an intent is the only way to open one app from it.
             Button(intent: OpenAppDirectlyIntent(appID: app.id.uuidString)) { label }
                 .buttonStyle(.plain)
         } else {
-            Button(intent: OpenAppThroughGoIntent(appID: app.id.uuidString)) { label }
-                .buttonStyle(.plain)
+            // Medium and large: each tile links into Go, which opens the app at once and logs
+            // the launch. One tap, with Go showing for a moment.
+            Link(destination: URL(string: "golauncher://launch?id=\(app.id.uuidString)")!) { label }
         }
     }
 }

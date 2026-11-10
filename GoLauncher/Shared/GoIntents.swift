@@ -10,7 +10,8 @@ struct OpenAppThroughGoIntent: AppIntent {
     static var isDiscoverable: Bool = false
     static var openAppWhenRun: Bool = true
 
-    @Parameter(title: "App ID")
+    // A default value keeps the parameter encodable when the widget packages the button.
+    @Parameter(title: "App ID", default: "")
     var appID: String
 
     init() {}

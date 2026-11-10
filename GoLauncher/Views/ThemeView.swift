@@ -241,11 +241,10 @@ struct ThemeView: View {
                 }
             }
             .disabled(savingWallpaper)
-            Toggle("Widgets open apps directly", isOn: $store.state.theme.widgetOpensDirectly)
         } header: {
             Text("Go on your Home Screen")
         } footer: {
-            Text("Add Go Section widgets to your iPhone's Home Screen and match its wallpaper to Go. If an app doesn't open from a widget, turn off “Widgets open apps directly” and taps go through Go instead.")
+            Text("Add Go widgets to your iPhone's Home Screen and match its wallpaper to Go. Tapping an app in a widget opens it through Go in one step, and it counts toward Recently Used.")
         }
         .alert("Wallpaper", isPresented: Binding(get: { wallpaperMessage != nil }, set: { if !$0 { wallpaperMessage = nil } })) {
             Button("OK", role: .cancel) {}
