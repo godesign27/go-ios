@@ -7,11 +7,15 @@ struct ThemeView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var wallpaperItem: PhotosPickerItem?
     @State private var confirmReset = false
+    @State private var savingWallpaper = false
+    @State private var wallpaperMessage: String?
+    @State private var showHomeScreenSetup = false
 
     var body: some View {
         NavigationStack {
             Form {
                 styleSection
+                homeScreenSection
                 widgetsSection
                 presetsSection
                 backgroundSection
@@ -213,6 +217,61 @@ struct ThemeView: View {
                 }
             }
             Toggle("Dark style", isOn: $store.state.theme.isDark)
+        }
+    }
+
+    // MARK: Go on your Home Screen
+
+    private var homeScreenSection: some View {
+        Section {
+            Button {
+                showHomeScreenSetup = true
+            } label: {
+                Label("Set Up Go as My Home Screen", systemImage: "iphone.gen3")
+            }
+            Button {
+                Task { await saveWallpaper() }
+            } label: {
+                HStack {
+                    Label(savingWallpaper ? "Saving…" : "Save Background as iPhone Wallpaper", systemImage: "photo.badge.arrow.down")
+                    if savingWallpaper {
+                        Spacer()
+                        ProgressView()
+                    }
+                }
+            }
+            .disabled(savingWallpaper)
+            Toggle("Widgets open apps directly", isOn: $store.state.theme.widgetOpensDirectly)
+        } header: {
+            Text("Go on your Home Screen")
+        } footer: {
+            Text("Add Go Section widgets to your iPhone's Home Screen and match its wallpaper to Go. If an app doesn't open from a widget, turn off “Widgets open apps directly” and taps go through Go instead.")
+        }
+        .alert("Wallpaper", isPresented: Binding(get: { wallpaperMessage != nil }, set: { if !$0 { wallpaperMessage = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(wallpaperMessage ?? "")
+        }
+        .sheet(isPresented: $showHomeScreenSetup) {
+            HomeScreenSetupView()
+        }
+    }
+
+    @MainActor
+    private func saveWallpaper() async {
+        savingWallpaper = true
+        defer { savingWallpaper = false }
+        guard let image = WallpaperExporter.render(theme: store.state.theme, store: store) else {
+            wallpaperMessage = "Go couldn't create the wallpaper image. Try again."
+            return
+        }
+        switch await WallpaperExporter.saveToPhotos(image) {
+        case .saved:
+            wallpaperMessage = "Saved to Photos. Open it in Photos, tap Share › Use as Wallpaper, and choose Home Screen (or both)."
+        case .denied:
+            wallpaperMessage = "Go needs permission to add photos. Turn it on in Settings › Privacy & Security › Photos › Go."
+        case .failed:
+            wallpaperMessage = "Go couldn't save the wallpaper to Photos. Try again."
         }
     }
 

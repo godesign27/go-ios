@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import UIKit
+import WidgetKit
 
 /// Holds your layout and saves it to disk automatically.
 final class LauncherStore: ObservableObject {
@@ -10,7 +11,10 @@ final class LauncherStore: ObservableObject {
     private let imageCache = NSCache<NSString, UIImage>()
 
     init() {
+        // Layouts now live in a folder shared with the Home Screen widgets; bring the old one over.
+        SharedPaths.migrateIfNeeded()
         state = Self.loadState() ?? Self.seed()
+        mergeWidgetLaunches()
         $state
             .dropFirst()
             .debounce(for: .milliseconds(400), scheduler: RunLoop.main)
@@ -477,25 +481,27 @@ final class LauncherStore: ObservableObject {
         do {
             let data = try JSONEncoder().encode(state)
             try data.write(to: Self.stateURL, options: .atomic)
+            // Home Screen widgets show this layout; redraw them with the change.
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             print("GoLauncher: failed to save layout: \(error)")
         }
     }
 
-    private static var baseURL: URL {
-        let url = FileManager.default
-            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("GoLauncher", isDirectory: true)
-        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        return url
-    }
+    // Shared with the widget extension (App Group); see SharedStorage.swift.
+    private static var baseURL: URL { SharedPaths.baseURL }
+    private static var stateURL: URL { SharedPaths.stateURL }
+    private static var imagesURL: URL { SharedPaths.imagesURL }
 
-    private static var stateURL: URL { baseURL.appendingPathComponent("state.json") }
-
-    private static var imagesURL: URL {
-        let url = baseURL.appendingPathComponent("Images", isDirectory: true)
-        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        return url
+    /// Counts launches made straight from Home Screen widgets (they can't edit the layout
+    /// themselves while the app might be saving it).
+    func mergeWidgetLaunches() {
+        let launches = WidgetLaunchLog.read()
+        guard !launches.isEmpty else { return }
+        state = state.applyingWidgetLaunches(launches)
+        // Save before clearing the log, so a launch is never counted twice or lost.
+        saveNow()
+        WidgetLaunchLog.clear()
     }
 
     private static func loadState() -> LauncherState? {

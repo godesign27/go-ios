@@ -86,15 +86,28 @@ This also works for anything else Shortcuts can do, like "Text Mom" or "Start Wo
 
 ---
 
-## Make it feel like your home screen
+## Make Go your Home Screen
 
-- **Put Go in the iPhone Dock.** Move Apple's other Dock icons onto a page, then drag Go into the Dock.
-- **Hide Apple's home screen pages.** Long-press the home screen, tap the page dots, and uncheck every page except one with Go on it. Your apps stay in the App Library.
-- **Open Go by tapping the back of the phone.** Settings › Accessibility › Touch › **Back Tap** › Double Tap › choose a Shortcut that opens Go.
-- **Jump straight into search.** Turn on **Design › Open straight into search**. The keyboard is then ready every time you open Go.
-- **Go's own links**, for Shortcuts, Back Tap, or the Action button:
-  - `golauncher://search` opens Go with search focused
-  - `golauncher://open?name=Spotify` opens your best match for "Spotify" through Go
+iOS doesn't let any app replace Apple's Home Screen, so Go goes everywhere iOS *does* allow:
+
+- **Go Section widgets** (iOS 18+) put your Go layout on the real Home Screen: small (4 apps), medium (4 or 8) or large (16). Each one shows the section you pick: Favorites, Recently Used, Most Used, Needs Attention or any group. They follow your Go theme (Classic, Glass or Tiles, official icons) and update when you change Go. Tap a tile to open the app; tap around the tiles to open that section in Go.
+- **Matching wallpaper:** Design › Go on your Home Screen › **Save Background as iPhone Wallpaper**, then set it in Photos.
+- **Go Search control** for Control Center, the Lock Screen and the Action Button: one tap and you're typing an app name. Also in Siri, Spotlight and Shortcuts as "Search in Go".
+
+Step by step, in the app: Design › **Set Up Go as My Home Screen**. In short:
+
+1. Save the background as your wallpaper.
+2. Long-press the Home Screen, move the first page's icons to the App Library.
+3. Tap **Edit › Add Widget**, search **Go**, add Go Section widgets, and long-press each › **Edit Widget** to pick its section.
+4. Tap the page dots and hide Apple's other pages.
+5. Add **Go Search** to Control Center (and the Lock Screen or Action Button).
+
+If an app doesn't open from a widget tile, turn off **Design › Widgets open apps directly**; taps then go through Go, which opens any app it can.
+
+Go's own links, for Shortcuts or Back Tap:
+- `golauncher://search` opens Go with search focused
+- `golauncher://open?name=Spotify` opens your best match for "Spotify" through Go
+- `golauncher://section?key=favorites` opens a section's View All
 
 ---
 
@@ -114,7 +127,11 @@ GoLauncher/
     GroupsView.swift        Manage groups
     ThemeView.swift         Design settings and presets
     SymbolPickerView.swift  SF Symbol chooser
-  Support/                  Hex colors, image downscaling
+  Shared/                   Compiled into the app and the widgets: App Group storage,
+                            section contents, widget/control intents
+  Support/                  Colors, glass, contrast, image downscaling, wallpaper export
+GoWidgets/                  Home Screen widget extension (iOS 18+): Go Section widget, tiles,
+                            open-app intent, Go Search control
 ```
 
-Your layout is saved automatically to the app's Application Support folder (`state.json`, plus any photos you picked). No account, no network, no tracking.
+Your layout is saved automatically in an App Group folder shared by the app and its widgets (`state.json`, plus icons and photos). Layouts from earlier versions move there on first launch. No account, no tracking; the network is used only for official app icons and the optional Weather widget.

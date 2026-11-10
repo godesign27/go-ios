@@ -17,6 +17,15 @@ targets:
     scheme: {}
     sources:
       - path: GoLauncher
+    # The Home Screen widgets and Go Search control ship inside the app.
+    dependencies:
+      - target: GoWidgets
+    # Shared folder for the layout, so widgets show what the app saves.
+    entitlements:
+      path: Config/GoLauncher.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.godesign.golauncher
     info:
       path: GoLauncher/Info.plist
       properties:
@@ -28,6 +37,7 @@ targets:
         # Only standard HTTPS is used, so uploads skip the export-compliance question.
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: Go uses your location only to show local weather in the Weather widget.
+        NSPhotoLibraryAddUsageDescription: Go saves your background to Photos so you can use it as your iPhone wallpaper.
         # Lets Go check which catalog apps are installed (canOpenURL). Keep in sync with the
         # non-Apple apps in AppCatalog.swift. iOS reads at most 50 entries.
         LSApplicationQueriesSchemes:
@@ -95,3 +105,36 @@ targets:
         CODE_SIGN_STYLE: Automatic
         # GO design, Inc. Kept here so regenerating the project doesn't clear the Team.
         DEVELOPMENT_TEAM: TTM6RL99QG
+
+  # Home Screen widgets ("Go Section") and the Go Search control for Control Center,
+  # the Lock Screen and the Action Button. iOS 18+ (interactive widgets that open apps,
+  # controls); the app itself still runs on iOS 17.
+  GoWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: GoWidgets
+      - path: GoLauncher/Models
+      - path: GoLauncher/Shared
+      - path: GoLauncher/Support/ColorHex.swift
+    info:
+      path: Config/GoWidgets-Info.plist
+      properties:
+        CFBundleDisplayName: Go
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Config/GoWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.godesign.golauncher
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.godesign.golauncher.widgets
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: TTM6RL99QG
+        SKIP_INSTALL: YES

@@ -124,30 +124,6 @@ struct GlassGroup<Content: View>: View {
     }
 }
 
-extension Color {
-    /// Relative luminance (0 = black, 1 = white) of a hex color, per WCAG.
-    static func luminance(ofHex hex: String) -> Double {
-        var string = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        if string.hasPrefix("#") { string.removeFirst() }
-        var value: UInt64 = 0
-        Scanner(string: String(string.prefix(6))).scanHexInt64(&value)
-        func channel(_ v: UInt64) -> Double {
-            let c = Double(v) / 255
-            return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
-        }
-        return 0.2126 * channel((value >> 16) & 0xFF)
-            + 0.7152 * channel((value >> 8) & 0xFF)
-            + 0.0722 * channel(value & 0xFF)
-    }
-
-    /// Near-black or near-white, whichever reads better on the given background.
-    static func readableText(onHex hex: String) -> Color {
-        // Contrast vs white is (1.05)/(L+0.05); vs near-black is (L+0.05)/0.05. Pick the higher.
-        let l = luminance(ofHex: hex)
-        return (l + 0.05) / 0.06 > 1.05 / (l + 0.05) ? Color(hex: "#1C1C1E") : Color(hex: "#FAFAFA")
-    }
-}
-
 // MARK: - Atmospheric glass
 
 enum GlassTokens {

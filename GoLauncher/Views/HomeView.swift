@@ -118,10 +118,13 @@ struct HomeView: View {
         .onOpenURL(perform: handleIncomingURL)
         .onAppear {
             if theme.searchOnOpen { openSearch() }
+            handleWidgetRequestSoon()
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
+                store.mergeWidgetLaunches()
+                handleWidgetRequestSoon()
                 store.syncInstalledApps()
                 if theme.searchOnOpen { openSearch() }
                 if theme.showWidgets, theme.leftWidget == .weather || theme.rightWidget == .weather {
@@ -745,9 +748,39 @@ struct HomeView: View {
 
     /// golauncher://search        → opens straight into search
     /// golauncher://open?name=X   → opens the best match for X
+    /// A Home Screen widget or the Go Search control opened Go to do something.
+    /// Checked now and again shortly after, because iOS may run the widget's action just after
+    /// Go comes to the front.
+    private func handleWidgetRequestSoon() {
+        handleWidgetRequest()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { handleWidgetRequest() }
+    }
+
+    private func handleWidgetRequest() {
+        guard let request = GoRequest.take() else { return }
+        switch request.kind {
+        case .search:
+            openSearch()
+        case .openApp:
+            if let id = request.appID, let app = store.state.apps.first(where: { $0.id == id }) {
+                launch(app)
+            }
+        }
+    }
+
     private func handleIncomingURL(_ url: URL) {
         guard url.scheme == "golauncher" else { return }
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         switch url.host {
+        case "launch":
+            // golauncher://launch?id=<app id>, from a widget tile.
+            if let id = query.first(where: { $0.name == "id" })?.value.flatMap(UUID.init(uuidString:)),
+               let app = store.state.apps.first(where: { $0.id == id }) {
+                launch(app)
+            }
+        case "section":
+            // golauncher://section?key=<section>, from tapping around a widget's tiles.
+            if let key = query.first(where: { $0.name == "key" })?.value { openViewAll(key) }
         case "search":
             openSearch()
         case "open":

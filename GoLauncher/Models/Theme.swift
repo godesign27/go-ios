@@ -113,6 +113,9 @@ struct Theme: Codable, Hashable {
     var useOfficialIcons = true
     /// Shown in the greeting ("Hello, Tim"). iOS doesn't share the owner's name with apps.
     var userName = ""
+    /// Home Screen widget taps open apps straight away (on) or through Go (off, for any app
+    /// that won't open directly).
+    var widgetOpensDirectly = true
 
     var labelColor: Color { Color(hex: labelColorHex) }
 
@@ -341,5 +344,6 @@ extension Theme {
         searchOnOpen = value(.searchOnOpen, d.searchOnOpen)
         useOfficialIcons = value(.useOfficialIcons, d.useOfficialIcons)
         userName = value(.userName, d.userName)
+        widgetOpensDirectly = value(.widgetOpensDirectly, d.widgetOpensDirectly)
     }
 }
