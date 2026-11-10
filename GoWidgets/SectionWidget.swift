@@ -269,6 +269,11 @@ struct GoSectionWidgetView: View {
         }
         .foregroundStyle(textColor)
         .widgetAccentable()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(entry.content.totalCount > entry.content.apps.count
+            ? "\(entry.content.title), \(entry.content.totalCount) apps"
+            : entry.content.title)
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var emptyState: some View {
@@ -326,7 +331,12 @@ struct GoSectionWidgetView: View {
             }
         }
         .frame(width: cell.width, height: cell.height, alignment: .top)
+        // One VoiceOver element per app ("Slack, button"), not the icon and name separately.
+        // Names stay a fixed size: a widget's grid has no room to grow, and VoiceOver and
+        // Large Content reading still give the full name.
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(app.name)
+        .accessibilityHint("Opens the app")
 
         if family == .systemSmall {
             // iOS treats a small widget as one tap target and ignores links inside it, so a

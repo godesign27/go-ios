@@ -2,6 +2,12 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var store: LauncherStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// The theme's columns, at most 3 at accessibility text sizes so names have room.
+    private var columnCount: Int {
+        dynamicTypeSize.isAccessibilitySize ? min(theme.columns, 3) : theme.columns
+    }
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @State private var designDetent: PresentationDetent = .large
@@ -27,7 +33,7 @@ struct HomeView: View {
     private var theme: Theme { store.state.theme }
 
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: theme.iconSpacing, alignment: .top), count: max(theme.columns, 1))
+        Array(repeating: GridItem(.flexible(), spacing: theme.iconSpacing, alignment: .top), count: max(columnCount, 1))
     }
 
     private var showsDock: Bool { store.state.showDock && !store.dockApps.isEmpty }
@@ -173,11 +179,13 @@ struct HomeView: View {
                 TimelineView(.everyMinute) { context in
                     VStack(alignment: .leading, spacing: 0) {
                         Text(context.date, format: .dateTime.weekday(.wide).month(.wide).day())
-                            .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
+                            .scaledFont(size: 15, weight: .semibold, design: theme.fontStyle.design, relativeTo: .body)
                             .opacity(Theme.secondaryOpacity)
                         Text(context.date, format: .dateTime.hour().minute())
-                            .font(.system(size: 46, weight: .bold, design: theme.fontStyle.design))
+                            .scaledFont(size: 46, weight: .bold, design: theme.fontStyle.design, relativeTo: .largeTitle, maxSize: 72)
                             .monospacedDigit()
+                            .minimumScaleFactor(0.7)
+                            .lineLimit(1)
                     }
                 }
             } else {
@@ -201,7 +209,7 @@ struct HomeView: View {
                 } label: {
                     // Everything in this menu customizes the home screen.
                     Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 17, weight: .semibold))
+                        .scaledFont(size: 17, weight: .semibold, relativeTo: .body, maxSize: 24)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
                         .glassSurface(in: Circle(), interactive: true)
@@ -224,12 +232,12 @@ struct HomeView: View {
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(theme.userName.isEmpty ? "Hello" : "Hello, \(theme.userName)")
-                    .font(.system(size: 34, weight: .bold, design: theme.fontStyle.design))
+                    .scaledFont(size: 34, weight: .bold, design: theme.fontStyle.design, relativeTo: .largeTitle, maxSize: 56)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                 if theme.userName.isEmpty {
                     Text("Tap to add your name")
-                        .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
+                        .scaledFont(size: 13, weight: .medium, design: theme.fontStyle.design, relativeTo: .footnote)
                         .opacity(Theme.secondaryOpacity)
                 }
             }
@@ -254,7 +262,7 @@ struct HomeView: View {
     private var searchButton: some View {
         Button(action: openSearch) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 22, weight: .semibold))
+                .scaledFont(size: 22, weight: .semibold, relativeTo: .title3, maxSize: 30)
                 .foregroundStyle(theme.labelColor)
                 .frame(width: 56, height: 56)
                 .contentShape(Circle())
@@ -283,39 +291,58 @@ struct HomeView: View {
                 HStack(spacing: 6) {
                     if let symbol {
                         Image(systemName: symbol)
-                            .font(.system(size: 12, weight: .bold))
+                            .scaledFont(size: 12, weight: .bold, relativeTo: .caption, maxSize: 24)
                             .opacity(Theme.secondaryOpacity)
                     }
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
+                        .scaledFont(size: 15, weight: .semibold, design: theme.fontStyle.design, relativeTo: .body)
+                        .lineLimit(2)
                     if let count {
                         Text("\(count)")
-                            .font(.system(size: 13, weight: .medium, design: theme.fontStyle.design))
+                            .scaledFont(size: 13, weight: .medium, design: theme.fontStyle.design, relativeTo: .footnote)
                             .opacity(Theme.secondaryOpacity)
                     }
                     Spacer(minLength: 0)
                 }
+                // 44pt tall tap target (Apple's minimum) without making the header taller.
+                .frame(minHeight: 44)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .padding(.vertical, -12)
+            // VoiceOver: "Favorites, 4 apps, heading, expanded" — headings let the rotor jump between sections.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(count.map { "\(title), \($0) \($0 == 1 ? "app" : "apps")" } ?? title)
+            .accessibilityValue(collapsed ? "Collapsed" : "Expanded")
+            .accessibilityHint(collapsed ? "Shows this section" : "Hides this section")
+            .accessibilityAddTraits([.isHeader, .isButton])
 
             if let viewAll, !collapsed {
-                Button("View All", action: viewAll)
-                    .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
-                    .opacity(Theme.secondaryOpacity)
-                    .buttonStyle(.plain)
+                Button(action: viewAll) {
+                    Text("View All")
+                        .scaledFont(size: 13, weight: .semibold, design: theme.fontStyle.design, relativeTo: .footnote)
+                        .opacity(Theme.secondaryOpacity)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, -12)
             }
 
             Button(action: action) {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 12, weight: .bold))
+                    .scaledFont(size: 12, weight: .bold, relativeTo: .caption, maxSize: 20)
                     .rotationEffect(.degrees(collapsed ? -90 : 0))
                     .opacity(Theme.secondaryOpacity)
-                    .frame(width: 24, height: 24)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(collapsed ? "Expand \(title)" : "Collapse \(title)")
+            // 44pt target without making the header taller.
+            .padding(.vertical, -10)
+            .padding(.trailing, -10)
+            // The title already toggles the section for VoiceOver.
+            .accessibilityHidden(true)
         }
         .foregroundStyle(theme.labelColor)
     }
@@ -339,7 +366,7 @@ struct HomeView: View {
     /// so a short list stays one tidy row instead of a lopsided block.
     private func stripColumns(count: Int, rows: Int) -> [[Int]] {
         guard rows > 1 else { return (0..<count).map { [$0] } }
-        let cols = max(theme.columns, 1)
+        let cols = max(columnCount, 1)
         let pageSize = cols * rows
         var result: [[Int]] = []
         var pageStart = 0
@@ -358,15 +385,15 @@ struct HomeView: View {
 
     /// How many apps fit without swiping or "View All".
     private func visibleCount(for key: String) -> Int {
-        theme.columns * rowCount(for: key)
+        columnCount * rowCount(for: key)
     }
 
     /// Apps in a section: everything in Rows mode (you swipe), a fixed amount in Grid mode.
     private func smartApps(_ kind: SmartSection, all: Bool = false) -> [LauncherApp] {
         switch kind {
-        case .recent: return store.recentApps(limit: all || usesRows ? 40 : theme.columns * 2)
+        case .recent: return store.recentApps(limit: all || usesRows ? 40 : columnCount * 2)
         case .favorites: return store.allFavoriteApps
-        case .mostUsed: return store.mostUsedApps(limit: all || usesRows ? 40 : theme.columns)
+        case .mostUsed: return store.mostUsedApps(limit: all || usesRows ? 40 : columnCount)
         case .attention: return store.attentionApps
         }
     }
@@ -400,10 +427,10 @@ struct HomeView: View {
                         }
                         .frame(maxHeight: .infinity, alignment: .top)
                         // A sliver of the next column peeks in so it's clear you can swipe.
-                        .containerRelativeFrame(.horizontal, count: theme.columns * 10 + 3, span: 10, spacing: theme.iconSpacing)
+                        .containerRelativeFrame(.horizontal, count: columnCount * 10 + 3, span: 10, spacing: theme.iconSpacing)
                     }
                     trailing()
-                        .containerRelativeFrame(.horizontal, count: theme.columns * 10 + 3, span: 10, spacing: theme.iconSpacing)
+                        .containerRelativeFrame(.horizontal, count: columnCount * 10 + 3, span: 10, spacing: theme.iconSpacing)
                 }
                 .scrollTargetLayout()
             }
@@ -519,7 +546,7 @@ struct HomeView: View {
     @ViewBuilder
     private func viewAllOverlay(_ key: String) -> some View {
         if let content = viewAllContent(key) {
-            let needsSearch = content.apps.count > theme.columns * 4
+            let needsSearch = content.apps.count > columnCount * 4
             let q = viewAllQuery.trimmingCharacters(in: .whitespaces).lowercased()
             let shown = q.isEmpty ? content.apps : content.apps.filter {
                 $0.name.lowercased().contains(q) || $0.keywords.lowercased().contains(q)
@@ -527,16 +554,18 @@ struct HomeView: View {
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     if let symbol = content.symbol {
-                        Image(systemName: symbol).font(.system(size: 16, weight: .bold)).opacity(Theme.secondaryOpacity)
+                        Image(systemName: symbol).scaledFont(size: 16, weight: .bold, relativeTo: .body).opacity(Theme.secondaryOpacity)
                     }
                     Text(content.title)
-                        .font(.system(size: 28, weight: .bold, design: theme.fontStyle.design))
+                        .scaledFont(size: 28, weight: .bold, design: theme.fontStyle.design, relativeTo: .largeTitle, maxSize: 44)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
                     Text("\(content.apps.count)")
-                        .font(.system(size: 17, weight: .semibold, design: theme.fontStyle.design))
+                        .scaledFont(size: 17, weight: .semibold, design: theme.fontStyle.design, relativeTo: .body)
                         .opacity(Theme.secondaryOpacity)
                     Spacer()
                     Button("Done", action: closeViewAll)
-                        .font(.system(size: 17, weight: .semibold, design: theme.fontStyle.design))
+                        .scaledFont(size: 17, weight: .semibold, design: theme.fontStyle.design, relativeTo: .body)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -608,7 +637,7 @@ struct HomeView: View {
                             Image(systemName: "minus.circle.fill")
                                 .symbolRenderingMode(.palette)
                                 .foregroundStyle(.white, .gray)
-                                .font(.system(size: 20))
+                                .scaledFont(size: 20, relativeTo: .title3)
                         }
                         .offset(x: -4, y: -4)
                         .accessibilityLabel("Remove \(app.name)")
@@ -635,12 +664,12 @@ struct HomeView: View {
             VStack(spacing: 6) {
                 RoundedRectangle(cornerRadius: theme.iconSize * theme.cornerFactor, style: .continuous)
                     .strokeBorder(theme.labelColor.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-                    .overlay(Image(systemName: "plus").font(.system(size: 20, weight: .semibold)))
+                    .overlay(Image(systemName: "plus").scaledFont(size: 20, weight: .semibold, relativeTo: .title3, maxSize: 28))
                     .aspectRatio(1, contentMode: .fit)
                     .frame(maxWidth: theme.fillCells ? .infinity : theme.iconSize)
                 if theme.showLabels {
                     Text("Add")
-                        .font(.system(size: 12, weight: .medium, design: theme.fontStyle.design))
+                        .scaledFont(size: 12, weight: .medium, design: theme.fontStyle.design, relativeTo: .caption, maxSize: 18)
                 }
             }
             .foregroundStyle(theme.labelColor.opacity(Theme.secondaryOpacity))
@@ -802,7 +831,7 @@ struct HomeView: View {
                     withAnimation(.snappy) { store.state.setup.announcementPending = false }
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .bold))
+                        .scaledFont(size: 13, weight: .bold, relativeTo: .footnote, maxSize: 22)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
@@ -907,6 +936,11 @@ struct HomeView: View {
 /// Full-screen search that opens from the search button: recent searches, suggestions, live results.
 struct SearchOverlay: View {
     @EnvironmentObject private var store: LauncherStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var columnCount: Int {
+        dynamicTypeSize.isAccessibilitySize ? min(theme.columns, 3) : theme.columns
+    }
     let theme: Theme
     let onLaunch: (LauncherApp, String) -> Void
     let onWebSearch: (String) -> Void
@@ -916,7 +950,7 @@ struct SearchOverlay: View {
     @FocusState private var focused: Bool
 
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: theme.iconSpacing, alignment: .top), count: max(theme.columns, 1))
+        Array(repeating: GridItem(.flexible(), spacing: theme.iconSpacing, alignment: .top), count: max(columnCount, 1))
     }
 
     var body: some View {
@@ -988,11 +1022,11 @@ struct SearchOverlay: View {
     private var recentSearches: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("Recent Searches").font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
+                Text("Recent Searches").scaledFont(size: 15, weight: .semibold, design: theme.fontStyle.design, relativeTo: .body)
                 Spacer()
                 if !store.state.recentSearches.isEmpty {
                     Button("Clear") { store.clearRecentSearches() }
-                        .font(.system(size: 14, weight: .medium))
+                        .scaledFont(size: 14, weight: .medium, relativeTo: .footnote)
                         .opacity(Theme.secondaryOpacity)
                 }
             }
@@ -1020,7 +1054,7 @@ struct SearchOverlay: View {
                         Button {
                             store.removeRecentSearch(recent)
                         } label: {
-                            Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).opacity(Theme.secondaryOpacity)
+                            Image(systemName: "xmark").scaledFont(size: 12, weight: .bold, relativeTo: .caption).opacity(Theme.secondaryOpacity)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Remove \(recent) from recent searches")
@@ -1034,10 +1068,10 @@ struct SearchOverlay: View {
 
     @ViewBuilder
     private var suggestions: some View {
-        let recentApps = store.recentApps(limit: theme.columns)
+        let recentApps = store.recentApps(limit: columnCount)
         if !recentApps.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Suggestions").font(.system(size: 15, weight: .semibold, design: theme.fontStyle.design))
+                Text("Suggestions").scaledFont(size: 15, weight: .semibold, design: theme.fontStyle.design, relativeTo: .body)
                 LazyVGrid(columns: columns, spacing: theme.rowSpacing) {
                     ForEach(recentApps) { app in
                         Button { onLaunch(app, "") } label: { AppIconView(app: app, theme: theme) }

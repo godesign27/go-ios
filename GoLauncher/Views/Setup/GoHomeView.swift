@@ -17,21 +17,21 @@ struct GoHomeView: View {
                 Section {
                     ForEach(SetupStep.required) { stepRow($0) }
                 } header: {
-                    Text("Steps")
+                    Text("Steps").foregroundStyle(.secondaryText)
                 }
                 Section {
                     ForEach(SetupStep.optional) { stepRow($0) }
                 } header: {
-                    Text("Optional")
+                    Text("Optional").foregroundStyle(.secondaryText)
                 }
                 Section {
                     Button(action: openClassicLauncher) {
                         Label("Open Classic Launcher", systemImage: "square.grid.3x3.fill")
                     }
                 } header: {
-                    Text("Classic Launcher")
+                    Text("Classic Launcher").foregroundStyle(.secondaryText)
                 } footer: {
-                    Text("GO full screen, with all your groups, search and dock. Setting up your Home Screen doesn't change it.")
+                    Text("GO full screen, with all your groups, search and dock. Setting up your Home Screen doesn't change it.").foregroundStyle(.secondaryText)
                 }
                 Section {
                     Picker("When GO Opens", selection: $store.state.setup.startScreen) {
@@ -39,7 +39,7 @@ struct GoHomeView: View {
                         Text("GO Home Screen").tag(HomeSetupState.StartScreen.homeScreenSetup)
                     }
                 } footer: {
-                    Text("Taps on GO's widgets and search always go straight to the app or search.")
+                    Text("Taps on GO's widgets and search always go straight to the app or search.").foregroundStyle(.secondaryText)
                 }
                 Section {
                     NavigationLink {
@@ -53,9 +53,9 @@ struct GoHomeView: View {
                         Label("Restore Points", systemImage: "arrow.uturn.backward.circle")
                     }
                 } header: {
-                    Text("Tools")
+                    Text("Tools").foregroundStyle(.secondaryText)
                 } footer: {
-                    Text("iOS doesn't let apps arrange your Home Screen, so these steps happen in iOS and GO can't check them. Mark each one done when you've finished it.")
+                    Text("iOS doesn't let apps arrange your Home Screen, so these steps happen in iOS and GO can't check them. Mark each one done when you've finished it.").foregroundStyle(.secondaryText)
                 }
             }
             .navigationTitle("GO Home Screen")
@@ -82,13 +82,13 @@ struct GoHomeView: View {
                     .font(.title3.weight(.bold))
                 Text("GO's widgets, matching wallpaper and search, right on Apple's Home Screen.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.secondaryText)
                 ProgressView(value: Double(store.setupDoneCount), total: Double(SetupStep.required.count))
                     .accessibilityLabel("Setup progress")
                     .accessibilityValue("\(store.setupDoneCount) of \(SetupStep.required.count) steps done")
                 Text("\(store.setupDoneCount) of \(SetupStep.required.count) steps done")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.secondaryText)
                     .accessibilityHidden(true)
             }
             .padding(.vertical, 4)
@@ -99,6 +99,7 @@ struct GoHomeView: View {
                     Label(store.setupDoneCount == 0 && store.status(of: next) == .pending ? "Start Setup" : "Continue: \(next.title)",
                           systemImage: "arrow.right.circle.fill")
                         .font(.body.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             } else {
                 Label("Your GO Home Screen is set up", systemImage: "checkmark.circle.fill")
@@ -117,7 +118,7 @@ struct GoHomeView: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(step.title).font(.body.weight(.medium))
-                    Text(step.summary).font(.footnote).foregroundStyle(.secondary)
+                    Text(step.summary).font(.footnote).foregroundStyle(.secondaryText)
                 }
                 Spacer(minLength: 8)
                 statusBadge(store.status(of: step))
@@ -137,7 +138,7 @@ struct GoHomeView: View {
         case .skipped:
             Text("Skipped")
                 .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.secondaryText)
         case .pending:
             EmptyView()
         }
@@ -159,7 +160,7 @@ struct WelcomeView: View {
                         .font(.largeTitle.weight(.bold))
                     Text("Your apps, organized and designed your way. How do you want to start?")
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.secondaryText)
                 }
                 .padding(.top, 24)
 
@@ -180,7 +181,7 @@ struct WelcomeView: View {
 
                 Text("You can switch anytime from Customize › Set Up GO Home Screen.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.secondaryText)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
@@ -212,5 +213,10 @@ struct WelcomeView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityHint(detail)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier(title)
     }
 }

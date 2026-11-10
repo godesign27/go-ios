@@ -4,12 +4,17 @@ import UIKit
 /// Two square widgets side by side at the top of the home screen (Design › Widgets).
 struct WidgetsRow: View {
     @EnvironmentObject private var store: LauncherStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ObservedObject var weather: WeatherService
     let theme: Theme
     let onLaunch: (LauncherApp) -> Void
 
     var body: some View {
-        HStack(spacing: theme.iconSpacing) {
+        // Side by side normally; stacked at accessibility text sizes so nothing is cut off.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: max(theme.iconSpacing, 8)))
+            : AnyLayout(HStackLayout(spacing: theme.iconSpacing))
+        layout {
             widget(theme.leftWidget)
             widget(theme.rightWidget)
         }
@@ -41,19 +46,31 @@ struct WidgetsRow: View {
 
 /// Square glass card. Its corners follow the icon shape (square in Tiles style).
 struct WidgetCard<Content: View>: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let theme: Theme
     var padded = true
     @ViewBuilder let content: Content
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: theme.cardCornerRadius, style: .continuous)
-        content
-            .padding(padded ? 14 : 0)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .aspectRatio(1, contentMode: .fit)
+        sized(content.padding(padded ? 14 : 0))
             .clipShape(shape)
             .cardSurface(in: shape, theme: theme)
             .foregroundStyle(theme.labelColor)
+    }
+
+    /// Square normally; at accessibility text sizes full width and as tall as the text needs.
+    @ViewBuilder
+    private func sized<V: View>(_ view: V) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            view
+                .frame(maxWidth: .infinity, minHeight: 160, alignment: .topLeading)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            view
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .aspectRatio(1, contentMode: .fit)
+        }
     }
 }
 
@@ -64,18 +81,18 @@ struct DateTimeWidget: View {
         TimelineView(.everyMinute) { context in
             VStack(alignment: .leading, spacing: 0) {
                 Text(context.date, format: .dateTime.weekday(.wide))
-                    .font(.system(size: 13, weight: .bold, design: theme.fontStyle.design))
+                    .scaledFont(size: 13, weight: .bold, design: theme.fontStyle.design, relativeTo: .footnote)
                     .textCase(.uppercase)
                     .opacity(Theme.secondaryOpacity)
                 Text(context.date, format: .dateTime.day())
-                    .font(.system(size: 46, weight: .bold, design: theme.fontStyle.design))
+                    .scaledFont(size: 46, weight: .bold, design: theme.fontStyle.design, relativeTo: .largeTitle, maxSize: 60)
                     .monospacedDigit()
                 Spacer(minLength: 0)
                 Text(context.date, format: .dateTime.hour().minute())
-                    .font(.system(size: 26, weight: .semibold, design: theme.fontStyle.design))
+                    .scaledFont(size: 26, weight: .semibold, design: theme.fontStyle.design, relativeTo: .title3, maxSize: 40)
                     .monospacedDigit()
                 Text(context.date, format: .dateTime.month(.wide).year())
-                    .font(.system(size: 12, weight: .medium, design: theme.fontStyle.design))
+                    .scaledFont(size: 12, weight: .medium, design: theme.fontStyle.design, relativeTo: .caption)
                     .opacity(Theme.secondaryOpacity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -94,21 +111,24 @@ struct WeatherWidget: View {
             if let current = weather.current {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(current.place ?? "Your location")
-                        .font(.system(size: 13, weight: .bold, design: theme.fontStyle.design))
+                        .scaledFont(size: 13, weight: .bold, design: theme.fontStyle.design, relativeTo: .footnote)
                         .lineLimit(1)
                     Text("\(Int(current.temperature.rounded()))°")
-                        .font(.system(size: 44, weight: .semibold, design: theme.fontStyle.design))
+                        .scaledFont(size: 44, weight: .semibold, design: theme.fontStyle.design, relativeTo: .largeTitle, maxSize: 60)
                     Spacer(minLength: 0)
                     Image(systemName: WeatherService.symbol(for: current.code))
                         .weatherSymbolStyle(theme)
-                        .font(.system(size: 20))
+                        .scaledFont(size: 20, relativeTo: .title3)
                     Text(WeatherService.description(for: current.code))
-                        .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
+                        .scaledFont(size: 13, weight: .semibold, design: theme.fontStyle.design, relativeTo: .footnote)
                         .lineLimit(1)
                     Text("H:\(Int(current.high.rounded()))°  L:\(Int(current.low.rounded()))°")
-                        .font(.system(size: 12, weight: .medium, design: theme.fontStyle.design))
+                        .scaledFont(size: 12, weight: .medium, design: theme.fontStyle.design, relativeTo: .caption)
                         .opacity(Theme.secondaryOpacity)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Weather, \(current.place ?? "your location")")
+                .accessibilityValue("\(Int(current.temperature.rounded())) degrees, \(WeatherService.description(for: current.code)), high \(Int(current.high.rounded())), low \(Int(current.low.rounded()))")
             } else {
                 message
             }
@@ -121,30 +141,31 @@ struct WeatherWidget: View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: "cloud.sun.fill")
                 .weatherSymbolStyle(theme)
-                .font(.system(size: 26))
+                .accessibilityHidden(true)
+                .scaledFont(size: 26, relativeTo: .title3)
             Spacer(minLength: 0)
             switch weather.status {
             case .loading, .idle:
                 ProgressView()
             case .needsPermission:
                 Text("Show your local weather")
-                    .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
+                    .scaledFont(size: 13, weight: .semibold, design: theme.fontStyle.design, relativeTo: .footnote)
                 Button("Allow Location") { weather.requestPermission() }
-                    .font(.system(size: 13, weight: .bold))
+                    .scaledFont(size: 13, weight: .bold, relativeTo: .footnote)
                     .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex), label: theme.labelColor, light: theme.hasDarkText))
             case .denied:
                 Text("Location is off for Go")
-                    .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
+                    .scaledFont(size: 13, weight: .semibold, design: theme.fontStyle.design, relativeTo: .footnote)
                 Button("Open Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }
-                .font(.system(size: 13, weight: .bold))
+                .scaledFont(size: 13, weight: .bold, relativeTo: .footnote)
                 .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex), label: theme.labelColor, light: theme.hasDarkText))
             case .failed, .ready:
                 Text("Couldn't load weather")
-                    .font(.system(size: 13, weight: .semibold, design: theme.fontStyle.design))
+                    .scaledFont(size: 13, weight: .semibold, design: theme.fontStyle.design, relativeTo: .footnote)
                 Button("Try Again") { weather.retry() }
-                    .font(.system(size: 13, weight: .bold))
+                    .scaledFont(size: 13, weight: .bold, relativeTo: .footnote)
                     .buttonStyle(GlassPillButtonStyle(tone: Color(hex: theme.toneHex), label: theme.labelColor, light: theme.hasDarkText))
             }
         }

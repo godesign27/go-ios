@@ -23,8 +23,8 @@ Priority: **P0** = core update prerequisite; **P1** = required before public rel
 | IOS-10 | P0 / 2 | Improve launch failures and Shortcut fallback | Missing/unsupported apps produce actionable recovery; successful widget launches record once. | Built (app launches); widget failures open |
 | IOS-11 | P0 / 2 | Clarify usage and attention labels | UI explains GO-recorded history, optional external-launch logging and manual Needs Attention. | Built |
 | IOS-12 | P0 / cross-phase | Preserve data and compatibility | Upgrade fixtures pass; app/group identifiers, assets, widget links, history and Shortcut mappings survive; interrupted migration recovers. | Done for v2 schema (sim + device upgrade) |
-| IOS-13 | P1 / 3 | Add Dynamic Type | Setup, search, editing and Classic Launcher remain usable at accessibility sizes. | Open |
-| IOS-14 | P1 / 3 | Audit VoiceOver, contrast and transparency | Essential flows are understandable and legible across supported settings and custom wallpapers. | Partly (accent/button contrast) |
+| IOS-13 | P1 / 3 | Add Dynamic Type | Setup, search, editing and Classic Launcher remain usable at accessibility sizes. | Built; simulator-checked at AX5; device check pending |
+| IOS-14 | P1 / 3 | Audit VoiceOver, contrast and transparency | Essential flows are understandable and legible across supported settings and custom wallpapers. | Built; automated audit + pixel checks; VoiceOver walk-through on device pending |
 | IOS-15 | P1 / 4 | Validate Siri and per-app logging automation | Siri open-app phrase and Log App in Go Recents work on devices; setup steps and limitations are documented. | Open (device) |
 | IOS-16 | P1 / 4 | Run upgrade/fresh-install TestFlight acceptance | Supported device/OS matrix passes with no blocking data loss, launch, setup or accessibility defect. | Open |
 | IOS-17 | P1 / 4 | Prepare accurate App Store materials | Screenshots, description, privacy disclosures and review notes reflect tested behavior and verified data use. | Open |
@@ -77,9 +77,43 @@ Branch `claude/ios-home-screen-update`; commits `02c64ea` (Phase 0) and `85fc776
 - **Device upgrade (tested):** iPhone 16e, from build 202611100650 to the new build. The layout loaded clean: 28 apps, 5 groups, 4 favorites, 20 image icons, 4 docked, launch history kept. Restore points `update-unknown` and `update-202611101015` were created.
 - **Not tested:** an interrupted upgrade on a device. It's covered by the unreadable-file path in the tests.
 
-### IOS-14 — Contrast (partly done)
-- The accent was #7C6AF4: 4.0:1 on white and 3.5:1 on dark grouped backgrounds. It's now #5B47E0 in light mode (6.1:1) and #A99BFF in dark mode (5.9:1). Filled buttons use #5B47E0 with white text (6.1:1).
-- The full VoiceOver and Dynamic Type audit is still open (IOS-13).
+### IOS-13 — Dynamic Type (built)
+- All 41 fixed text sizes in Classic Launcher, the in-app widgets and icon labels now scale with Text Size, using `scaledFont` in `Support/ScaledFont.swift`. Each keeps its theme size and font design, and grows like the text style it sits next to.
+- Some sizes have a ceiling because the space is fixed:
+  - icon names: 18pt
+  - round buttons: 24–30pt
+  - clock: 72pt
+- At accessibility sizes, Classic Launcher uses at most 3 columns. The date and weather cards stack and grow to fit their text, and section titles wrap to two lines.
+- The setup screens use system text styles, so they scale fully.
+- **Simulator (tested):** at the largest size, AX5, on the iPhone 17 the launcher stays usable. Cards stack, 3 columns, names fit, headings wrap.
+- **Not done:**
+  - The Home Screen widgets keep fixed name sizes because their grid can't grow. VoiceOver reads the full names.
+  - Search, Add App and the editor sheets weren't checked at AX5.
+  - Not yet checked on a device.
+
+### IOS-14 — VoiceOver, contrast and transparency (built)
+- **Contrast fixes:**
+  - The accent was #7C6AF4: 4.0:1 on white and 3.5:1 on dark grouped backgrounds. It's now #5B47E0 in light mode (6.1:1) and #A99BFF in dark mode (5.9:1).
+  - Filled buttons use #5B47E0 with white text (6.1:1).
+  - Secondary text on the setup screens uses `.secondaryText` (label color at 72%). The system grey only "nearly passed" Xcode's audit.
+- **Reduce Transparency:** with it on, cards now use the wallpaper's deep tone as a solid fill. White text on the Ocean preset measured 4.25:1 before and 9.3:1 after (rendered pixels, simulator).
+- **VoiceOver:**
+  - Section headers read as one heading with app count, Expanded/Collapsed state and a hint. The duplicate chevron is hidden.
+  - The weather card reads as one summary, and its decorative icon is hidden.
+  - Welcome choices read as a short label with the description as a hint.
+  - Each Home Screen widget tile is one element ("Slack", hint "Opens the app"), and the widget title is a heading.
+- **Hit areas:** section titles and View All now have 44pt tap targets.
+- **Automated audit:** the `GoLauncherUITests` target runs Apple's `performAccessibilityAudit` on Classic Launcher, the setup hub and the wallpaper step. It fails on any finding that hasn't been reviewed.
+  - Launcher contrast findings were measured on the rendered pixels at 12.7–17.5:1. The audit samples an icon and its name as one element, so those findings are accepted as false positives.
+  - Icon-name Dynamic Type limits are by design, and the remaining findings are system controls.
+  - On the setup screens, rows flagged as "clipped" or "partial Dynamic Type" were checked by eye at AX5: they scale and wrap.
+  - Result: 16 unit tests and 2 audit tests pass (`xcodebuild test -scheme GoLauncher`).
+  - The reviewed exceptions and their reasons are listed in the test.
+- **Not done:**
+  - One audit hit-area finding on an unnamed element in the setup list is still unidentified. It's accepted in the test until it's checked with Accessibility Inspector.
+  - A full VoiceOver walk-through on the iPhone.
+  - Increase Contrast and Bold Text checks.
+  - Custom photo wallpapers. They use the existing measured contrast guard, but weren't rechecked this round.
 
 ### Device checks for the next session (need a person on the iPhone)
 1. Run setup as a new tester: save the wallpaper, set it, add each widget size, pick groups, add Go Search to Control Center.

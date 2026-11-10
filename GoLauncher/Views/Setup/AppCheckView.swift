@@ -90,9 +90,9 @@ struct AppCheckView: View {
                         }
                     }
                 } header: {
-                    Label(status.title, systemImage: status.symbol)
+                    Label(status.title, systemImage: status.symbol).foregroundStyle(.secondaryText)
                 } footer: {
-                    Text(status.footer)
+                    Text(status.footer).foregroundStyle(.secondaryText)
                 }
             }
         }
@@ -105,7 +105,7 @@ struct AppCheckView: View {
             Text(app.name.isEmpty ? "Untitled" : app.name)
             Text(app.launchCount > 0 ? "Opened from GO \(app.launchCount) \(app.launchCount == 1 ? "time" : "times")" : "Not opened from GO yet")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.secondaryText)
         }
         .accessibilityElement(children: .combine)
     }
@@ -133,7 +133,7 @@ struct RestorePointsView: View {
             if backups.isEmpty {
                 Section {
                     Text("No restore points yet. GO makes one when it updates, before a reset, and before restoring.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.secondaryText)
                 }
             } else {
                 Section {
@@ -146,7 +146,7 @@ struct RestorePointsView: View {
                         .foregroundStyle(.primary)
                     }
                 } footer: {
-                    Text("Restoring replaces your apps, groups, favorites, dock and design with the copy. Your current layout is saved as a restore point first.")
+                    Text("Restoring replaces your apps, groups, favorites, dock and design with the copy. Your current layout is saved as a restore point first.").foregroundStyle(.secondaryText)
                 }
             }
         }

@@ -118,7 +118,7 @@ struct AppIconView: View {
                 if nameInside {
                     // Name inside the tile, like a label on a card.
                     Text(app.name)
-                        .font(.system(size: 11, weight: .semibold, design: theme.fontStyle.design))
+                        .scaledFont(size: 11, weight: .semibold, design: theme.fontStyle.design, relativeTo: .caption, maxSize: 15)
                         // Dark or light text, whichever reads better on this tile (WCAG contrast).
                         // On a photo or App Store icon: white text over a soft dark fade.
                         .foregroundStyle(isPictureIcon ? Color.white : Color.readableText(onHex: theme.uniformIconColors ? theme.uniformIconHex : app.colorHex))
@@ -131,10 +131,12 @@ struct AppIconView: View {
             }
             if showLabel && theme.showLabels && !theme.labelsInside {
                 Text(app.name)
-                    .font(.system(size: 12, weight: .medium, design: theme.fontStyle.design))
+                    // Grows with Text Size up to what fits under an icon; VoiceOver reads the full name.
+                    .scaledFont(size: 12, weight: .medium, design: theme.fontStyle.design, relativeTo: .caption, maxSize: 18)
                     .foregroundStyle(theme.labelColor)
                     .shadow(color: .black.opacity(theme.isDark ? 0.35 : 0), radius: 2, y: 1)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
                     .truncationMode(.tail)
             }
         }

@@ -17,6 +17,7 @@ targets:
     scheme:
       testTargets:
         - GoLauncherTests
+        - GoLauncherUITests
     sources:
       - path: GoLauncher
     # The Home Screen widgets and Go Search control ship inside the app.
@@ -103,6 +104,22 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/GoLauncher.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GoLauncher
         BUNDLE_LOADER: $(TEST_HOST)
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: TTM6RL99QG
+
+  # Apple's automated accessibility audit on Classic Launcher and setup.
+  GoLauncherUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: GoLauncherUITests
+    dependencies:
+      - target: GoLauncher
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.godesign.golauncher.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: GoLauncher
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: TTM6RL99QG
 

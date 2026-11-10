@@ -192,7 +192,9 @@ struct AtmosphericGlass<S: InsettableShape>: ViewModifier {
             .background {
                 ZStack {
                     if reduceTransparency {
-                        shape.fill(tone)
+                        // Solid. White text needs the wallpaper's deep tone (the plain tone measured
+                        // 4.25:1 on the Ocean preset); dark text sits on the light tone.
+                        shape.fill(light ? tone : legibility.tint)
                     } else if isButton {
                         // Buttons sit on a card that's already frosted; a second frost would
                         // lighten the pill past WCAG contrast for its white label.

@@ -20,7 +20,7 @@ struct SetupStepView: View {
                         .foregroundStyle(.tint)
                         .accessibilityHidden(true)
                     Text(step.title).font(.title2.weight(.bold))
-                    Text(step.summary).font(.subheadline).foregroundStyle(.secondary)
+                    Text(step.summary).font(.subheadline).foregroundStyle(.secondaryText)
                 }
                 .padding(.vertical, 4)
             }
@@ -35,6 +35,7 @@ struct SetupStepView: View {
                     } label: {
                         Label("Mark as Done", systemImage: "checkmark.circle.fill")
                             .font(.body.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 if status == .pending {
@@ -94,13 +95,13 @@ struct SetupStepView: View {
             HStack {
                 Text("Current style")
                 Spacer()
-                Text(styleName).foregroundStyle(.secondary)
+                Text(styleName).foregroundStyle(.secondaryText)
             }
             Button(action: openDesign) {
                 Label("Open Design", systemImage: "paintpalette")
             }
         } footer: {
-            Text("Pick Classic, Glass or Tiles, then a preset, photo or gradient. GO's widgets and the wallpaper you save next use this look. You can change it later and save the wallpaper again.")
+            Text("Pick Classic, Glass or Tiles, then a preset, photo or gradient. GO's widgets and the wallpaper you save next use this look. You can change it later and save the wallpaper again.").foregroundStyle(.secondaryText)
         }
     }
 
@@ -142,9 +143,9 @@ struct SetupStepView: View {
                 widgetRow("Most Used", "Apps you open through GO most often.", symbol: "flame.fill")
                 widgetRow("Go Group", "Any group: Essentials, AI, Tools or your own.", symbol: "rectangle.3.group")
             } header: {
-                Text("GO widgets")
+                Text("GO widgets").foregroundStyle(.secondaryText)
             } footer: {
-                Text("Medium and large widgets open an app in one tap. Large shows up to 16 apps, medium up to 8.")
+                Text("Medium and large widgets open an app in one tap. Large shows up to 16 apps, medium up to 8.").foregroundStyle(.secondaryText)
             }
         }
     }
@@ -153,7 +154,7 @@ struct SetupStepView: View {
         Label {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
-                Text(detail).font(.footnote).foregroundStyle(.secondary)
+                Text(detail).font(.footnote).foregroundStyle(.secondaryText)
             }
         } icon: {
             Image(systemName: symbol)
@@ -172,9 +173,9 @@ struct SetupStepView: View {
                     Text(group.name)
                 }
             } header: {
-                Text("Your groups")
+                Text("Your groups").foregroundStyle(.secondaryText)
             } footer: {
-                Text("Add or rename groups in Customize › Groups & Dock. Widgets update when you change them.")
+                Text("Add or rename groups in Customize › Groups & Dock. Widgets update when you change them.").foregroundStyle(.secondaryText)
             }
         }
     }
@@ -202,7 +203,7 @@ struct SetupStepView: View {
             Section {
                 Toggle("Open search when GO opens", isOn: $store.state.theme.searchOnOpen)
             } footer: {
-                Text("Also useful with GO in your Dock: tap GO and start typing.")
+                Text("Also useful with GO in your Dock: tap GO and start typing.").foregroundStyle(.secondaryText)
             }
         }
     }
@@ -241,15 +242,15 @@ struct SetupStepView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text("\(index + 1).")
                         .font(.body.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.secondaryText)
                     Text(line)
                 }
                 .accessibilityElement(children: .combine)
             }
         } header: {
-            if let header { Text(header) }
+            if let header { Text(header).foregroundStyle(.secondaryText) }
         } footer: {
-            if let footer { Text(footer) }
+            if let footer { Text(footer).foregroundStyle(.secondaryText) }
         }
     }
 }
@@ -290,6 +291,7 @@ struct WallpaperStepContent: View {
             } label: {
                 HStack {
                     Label(phase == .saved ? "Save Again" : "Save to Photos", systemImage: "photo.badge.arrow.down")
+                        .fixedSize(horizontal: false, vertical: true)
                     if phase == .saving {
                         Spacer()
                         ProgressView()
@@ -298,7 +300,7 @@ struct WallpaperStepContent: View {
             }
             .disabled(phase == .saving)
         } footer: {
-            Text("Saved at this iPhone's full screen size, using your current Design.")
+            Text("Saved at this iPhone's full screen size, using your current Design.").foregroundStyle(.secondaryText)
         }
         .task(id: store.state.theme) {
             preview = WallpaperExporter.render(theme: store.state.theme, store: store)
@@ -314,7 +316,7 @@ struct WallpaperStepContent: View {
                 Text("Open Photos and open the new image. Tap the Share button, then Use as Wallpaper, and follow the prompts to use it on your Home Screen.")
                     .font(.subheadline)
             } header: {
-                Text("Now set it as your wallpaper")
+                Text("Now set it as your wallpaper").foregroundStyle(.secondaryText)
             }
         case .denied:
             Section {
@@ -326,7 +328,7 @@ struct WallpaperStepContent: View {
                     Label("Open GO's Settings", systemImage: "gear")
                 }
             } header: {
-                Text("Photos access is off")
+                Text("Photos access is off").foregroundStyle(.secondaryText)
             }
         case .failed:
             Section {
