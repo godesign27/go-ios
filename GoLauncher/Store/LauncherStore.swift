@@ -23,6 +23,12 @@ final class LauncherStore: ObservableObject {
         loadedCleanly = loaded.state != nil || !loaded.fileExisted
         // Saved from now on in this build's format (older fields kept, new ones defaulted).
         state.schemaVersion = LauncherState.currentSchemaVersion
+        #if DEBUG
+        // Device check evidence (Xcode console / devicectl --console); not in release builds.
+        let favorites = state.favoriteAppIDs.filter { id in state.apps.contains { $0.id == id } }.count
+        let photos = state.apps.filter { if case .image = $0.glyph { return true } else { return false } }.count
+        print("GO layout: file=\(loaded.fileExisted) clean=\(loadedCleanly) apps=\(state.apps.count) groups=\(state.groups.count) favorites=\(favorites) photoIcons=\(photos) docked=\(state.apps.filter(\.isDocked).count) launched=\(state.apps.filter { $0.launchCount > 0 }.count) start=\(state.setup.startScreen.rawValue) announcement=\(state.setup.announcementPending) restorePoints=\(StateBackups.live.list().map { "\($0.reason)-\($0.build)" })")
+        #endif
         mergeWidgetLaunches()
         $state
             .dropFirst()

@@ -94,15 +94,15 @@ iOS doesn't let any app replace Apple's Home Screen, so Go goes everywhere iOS *
 - **Matching wallpaper:** Design › Go on your Home Screen › **Save Background as iPhone Wallpaper**, then set it in Photos.
 - **Go Search control** for Control Center, the Lock Screen and the Action Button: one tap and you're typing an app name. Also in Siri, Spotlight and Shortcuts as "Search in Go".
 
-Step by step, in the app: Design › **Set Up Go as My Home Screen**. In short:
+Step by step, in the app: **Customize › Set Up GO Home Screen** (also in Design). Progress is saved, steps can be skipped and revisited, and **Open Classic Launcher** is always one tap away. **When GO Opens** picks whether GO opens to Classic Launcher (the default for existing users) or to this setup. In short:
 
-1. Save the background as your wallpaper.
-2. Long-press the Home Screen, move the first page's icons to the App Library.
-3. Tap **Edit › Add Widget**, search **Go**, add Go Section widgets, and long-press each › **Edit Widget** to pick its section.
-4. Tap the page dots and hide Apple's other pages.
-5. Add **Go Search** to Control Center (and the Lock Screen or Action Button).
+1. Choose your look, then save the matching wallpaper (there's a fix if Photos access is off).
+2. Make room on a Home Screen page (apps move to the App Library; nothing is deleted).
+3. Tap **Edit › Add Widget**, search **GO**, add GO widgets, and long-press each › **Edit Widget** to pick its group.
+4. Add **Go Search** to Control Center (and the Lock Screen or Action Button).
+5. Optional: hide Apple's other pages (and how to show them again); log launches from anywhere with a Shortcuts automation.
 
-If an app doesn't open from a widget tile, turn off **Design › Widgets open apps directly**; taps then go through Go, which opens any app it can.
+**Check My Apps** (in setup) shows which apps iOS confirms are on this iPhone. **Restore Points** (setup and Design) bring back an earlier layout; GO makes one on every update and before a reset. Details: [docs/BASELINE.md](docs/BASELINE.md).
 
 Go's own links, for Shortcuts or Back Tap:
 - `golauncher://search` opens Go with search focused
